@@ -39,6 +39,16 @@ public class DailyRewardManager {
         return data.getItemStack("rewards.day" + day);
     }
 
+    public CrateEffect getEffect() {
+        CrateEffect effect = CrateEffect.fromString(data.getString("effect"));
+        return effect != null ? effect : CrateEffect.FAJERWERKI;
+    }
+
+    public void setEffect(CrateEffect effect) {
+        data.set("effect", effect.name());
+        save();
+    }
+
     public boolean canClaimToday(UUID uuid) {
         long today = currentEpochDay();
         long last = data.getLong("players." + uuid + ".last-claim-day", -1);

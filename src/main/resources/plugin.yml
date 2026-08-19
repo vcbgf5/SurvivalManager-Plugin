@@ -38,8 +38,8 @@ commands:
     description: Odbiera kit, tworzy go (admin) lub migruje stare kity - /kit create <nazwa>, /kit migrate
     usage: /kit <nazwa> lub /kit create <nazwa> lub /kit migrate
   daily:
-    description: Odbiera codzienna nagrode lub konfiguruje dzien (admin) - /daily setday <1-7>
-    usage: /daily lub /daily setday <1-7>
+    description: Odbiera codzienna nagrode (z efektem) lub konfiguruje dzien/efekt (admin) - /daily setday <1-7>, /daily seteffect <efekt>
+    usage: /daily lub /daily setday <1-7> lub /daily seteffect <efekt>
   crate:
     description: Skrzynie - /crate create|givekey|bind|unbind|sethologram|seteffect|list
     usage: /crate create|givekey|bind|unbind|sethologram|seteffect|list

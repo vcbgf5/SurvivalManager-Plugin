@@ -53,6 +53,21 @@ public class DailyCommand implements CommandExecutor {
             return true;
         }
 
+        if (args.length >= 2 && args[0].equalsIgnoreCase("seteffect")) {
+            if (!player.hasPermission("combatlog.daily.admin")) {
+                player.sendMessage("§cNie masz uprawnień do konfiguracji nagród daily.");
+                return true;
+            }
+            CrateEffect effect = CrateEffect.fromString(args[1]);
+            if (effect == null) {
+                player.sendMessage("§cNieznany efekt. Dostępne: " + CrateEffect.listNames());
+                return true;
+            }
+            plugin.getDaily().setEffect(effect);
+            player.sendMessage("§aUstawiono efekt odbioru daily: '" + effect.getDisplayName() + "'.");
+            return true;
+        }
+
         if (!plugin.getDaily().canClaimToday(player.getUniqueId())) {
             player.sendMessage("§cJuż odebrałeś dzisiejszą nagrodę. Wróć jutro!");
             return true;
@@ -72,6 +87,7 @@ public class DailyCommand implements CommandExecutor {
         }
 
         plugin.getDaily().markClaimed(player.getUniqueId(), cycleDay);
+        plugin.getDaily().getEffect().play(plugin, player.getLocation());
         player.sendMessage("§aOdebrano nagrodę za dzień §f" + cycleDay + "§a/7 z rzędu!");
         return true;
     }

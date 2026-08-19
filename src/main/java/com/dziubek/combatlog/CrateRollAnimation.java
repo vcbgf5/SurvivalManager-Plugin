@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
@@ -12,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -19,6 +21,8 @@ import java.util.Random;
 public class CrateRollAnimation {
 
     private static final int TOTAL_STEPS = 24;
+    private static final int[] REEL_SLOTS = {2, 3, 4, 5, 6};
+    private static final int RESULT_SLOT = 4;
 
     // progi rzadkosci wg CrateReward.chance() (%) - im nizszy procent, tym rzadszy przedmiot
     private static final double LEGENDARY_THRESHOLD = 5.0;
@@ -27,19 +31,25 @@ public class CrateRollAnimation {
     public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards) {
         Inventory inv = Bukkit.createInventory(new CrateRollGuiHolder(), 9, "§6§lOtwieranie: §f" + crateName);
 
-        ItemStack glass = glassPane();
+        ItemStack border = borderPane(Material.BLACK_STAINED_GLASS_PANE);
         for (int i = 0; i < 9; i++) {
-            if (i != 4) {
-                inv.setItem(i, glass);
-            }
+            inv.setItem(i, border);
         }
 
+        Random random = new Random();
+        List<ItemStack> reel = new ArrayList<>();
+        for (int i = 0; i < REEL_SLOTS.length; i++) {
+            reel.add(rewards.get(random.nextInt(rewards.size())).item());
+        }
+        renderReel(inv, reel);
+
         player.openInventory(inv);
-        step(plugin, player, inv, crateName, rewards, new Random(), 0);
+        TitleUtil.show(player, "§6§lLosowanie...", "§7" + crateName);
+        step(plugin, player, inv, crateName, rewards, reel, random, 0);
     }
 
     private static void step(CombatLogPlugin plugin, Player player, Inventory inv, String crateName,
-                              List<CrateReward> rewards, Random random, int tick) {
+                              List<CrateReward> rewards, List<ItemStack> reel, Random random, int tick) {
 
         if (!player.isOnline()) {
             return; // gracz sie rozlaczyl - nie da sie kontynuowac
@@ -52,19 +62,31 @@ public class CrateRollAnimation {
         }
 
         if (tick < TOTAL_STEPS) {
-            ItemStack randomItem = rewards.get(random.nextInt(rewards.size())).item().clone();
-            inv.setItem(4, randomItem);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1.0f + (tick * 0.02f));
+            // szpula "przesuwa sie" - najstarszy przedmiot wypada, nowy losowy wjezdza z prawej
+            reel.remove(0);
+            reel.add(rewards.get(random.nextInt(rewards.size())).item());
+            renderReel(inv, reel);
 
-            // opóźnienie rośnie pod koniec animacji, żeby "rolka" wizualnie zwalniała
-            long delay = 2 + (tick / 4);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1.0f + (tick * 0.02f));
+            if (tick % 2 == 0) {
+                player.spawnParticle(Particle.END_ROD, player.getEyeLocation(), 1, 0.15, 0.1, 0.15, 0.01);
+            }
+
+            // im blizej konca, tym mocniej zwalnia - buduje napiecie tuz przed odkryciem
+            long delay = 2 + (long) ((tick * (double) tick) / 40.0);
             int next = tick + 1;
             plugin.getServer().getScheduler().runTaskLater(plugin,
-                    () -> step(plugin, player, inv, crateName, rewards, random, next), delay);
+                    () -> step(plugin, player, inv, crateName, rewards, reel, random, next), delay);
         } else {
             CrateReward wonReward = pickWeighted(rewards, random);
             ItemStack won = wonReward.item().clone();
-            inv.setItem(4, won);
+
+            ItemStack frame = borderPane(frameColorFor(wonReward.chance()));
+            for (int i = 0; i < 9; i++) {
+                inv.setItem(i, frame);
+            }
+            inv.setItem(RESULT_SLOT, won);
+
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 
             Map<Integer, ItemStack> leftover = player.getInventory().addItem(won.clone());
@@ -79,6 +101,22 @@ public class CrateRollAnimation {
 
             announceRarity(plugin, player, crateName, name, wonReward.chance());
         }
+    }
+
+    private static void renderReel(Inventory inv, List<ItemStack> reel) {
+        for (int i = 0; i < REEL_SLOTS.length; i++) {
+            inv.setItem(REEL_SLOTS[i], reel.get(i).clone());
+        }
+    }
+
+    private static Material frameColorFor(double chance) {
+        if (chance < LEGENDARY_THRESHOLD) {
+            return Material.YELLOW_STAINED_GLASS_PANE;
+        }
+        if (chance < RARE_THRESHOLD) {
+            return Material.LIGHT_BLUE_STAINED_GLASS_PANE;
+        }
+        return Material.BLACK_STAINED_GLASS_PANE;
     }
 
     /**
@@ -144,8 +182,8 @@ public class CrateRollAnimation {
         return item.getType().toString();
     }
 
-    private static ItemStack glassPane() {
-        ItemStack glass = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+    private static ItemStack borderPane(Material material) {
+        ItemStack glass = new ItemStack(material);
         ItemMeta meta = glass.getItemMeta();
         meta.setDisplayName(" ");
         glass.setItemMeta(meta);

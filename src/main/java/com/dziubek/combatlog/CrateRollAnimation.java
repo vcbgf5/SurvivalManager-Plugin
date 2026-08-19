@@ -41,8 +41,14 @@ public class CrateRollAnimation {
     private static void step(CombatLogPlugin plugin, Player player, Inventory inv, String crateName,
                               List<CrateReward> rewards, Random random, int tick) {
 
-        if (!player.isOnline() || !player.getOpenInventory().getTopInventory().equals(inv)) {
-            return; // gracz zamknął GUI wcześniej - przerywamy
+        if (!player.isOnline()) {
+            return; // gracz sie rozlaczyl - nie da sie kontynuowac
+        }
+
+        if (!player.getOpenInventory().getTopInventory().equals(inv)) {
+            // gracz zamknal GUI w trakcie losowania - otwieramy z powrotem i kontynuujemy,
+            // zamkniecie okna NIE przerywa losowania, tylko je chwilowo chowa
+            player.openInventory(inv);
         }
 
         if (tick < TOTAL_STEPS) {

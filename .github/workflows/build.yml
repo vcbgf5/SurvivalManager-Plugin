@@ -17,21 +17,11 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Build with Maven
-        run: mvn -B package
+      - name: Build
+        run: mvn clean package
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: SurvivalManager
           path: target/SurvivalManager.jar
-
-      - name: Create/refresh Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          name: "Najnowszy build"
-          make_latest: true
-          files: target/SurvivalManager.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

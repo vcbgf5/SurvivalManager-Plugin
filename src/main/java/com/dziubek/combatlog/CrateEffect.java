@@ -73,26 +73,50 @@ public enum CrateEffect {
     }
 
     /**
-     * Cichy, ciągle wirujący pierścień cząsteczek DOOKOŁA bloku (nie nad nim) - widoczny cały czas,
-     * gdy nikt akurat nie otwiera skrzyni. Kąt liczony z czasu systemowego, więc animacja jest płynna
-     * niezależnie jak często wywołujemy tę metodę, i wszystkie skrzynie kręcą się zsynchronizowanie.
+     * Rozbudowana, cicha animacja widoczna cały czas dookoła i nad blokiem, gdy nikt akurat nie
+     * otwiera skrzyni: dwa pierścienie na różnych wysokościach kręcące się w przeciwne strony
+     * (efekt "podwójnej spirali") plus cząsteczki opadające z góry na skrzynię w kółko od nowa.
+     * Wszystko liczone z czasu systemowego, więc animacja jest płynna niezależnie jak często
+     * wywołujemy tę metodę, i wszystkie skrzynie animują się zsynchronizowanie.
      */
     public void playIdle(Location blockLocation) {
-        Location center = blockLocation.clone().add(0.5, 0.6, 0.5);
-        World world = center.getWorld();
+        Location base = blockLocation.clone().add(0.5, 0.0, 0.5);
+        World world = base.getWorld();
         if (world == null) {
             return;
         }
         Particle idleParticle = (this == SPIRALA) ? Particle.END_ROD : particle;
+        long now = System.currentTimeMillis();
 
-        double baseAngle = (System.currentTimeMillis() % 4000) / 4000.0 * Math.PI * 2;
-        int points = 3;
-        double radius = 0.8;
+        // dwa pierscienie, rozna wysokosc/promien/predkosc, kreca sie w przeciwne strony
+        spawnRing(world, base, idleParticle, now, 0.85, 0.9, 5, 4000, false);
+        spawnRing(world, base, idleParticle, now, 0.55, 0.3, 4, 3000, true);
+
+        // czasteczki opadajace z gory na skrzynie, zapetlone
+        int fallers = 4;
+        double fallHeight = 1.6;
+        for (int i = 0; i < fallers; i++) {
+            double phase = ((now + i * 900L) % 1600L) / 1600.0;
+            double y = fallHeight - phase * fallHeight;
+            double angle = Math.toRadians(i * (360.0 / fallers));
+            double radius = 0.35;
+            double x = base.getX() + radius * Math.cos(angle);
+            double z = base.getZ() + radius * Math.sin(angle);
+            world.spawnParticle(idleParticle, x, base.getY() + y, z, 1, 0, 0, 0, 0);
+        }
+    }
+
+    private void spawnRing(World world, Location base, Particle idleParticle, long now,
+                            double radius, double height, int points, long periodMs, boolean reverse) {
+        double baseAngle = (now % periodMs) / (double) periodMs * Math.PI * 2;
+        if (reverse) {
+            baseAngle = -baseAngle;
+        }
         for (int i = 0; i < points; i++) {
             double angle = baseAngle + (Math.PI * 2 / points) * i;
-            double x = center.getX() + radius * Math.cos(angle);
-            double z = center.getZ() + radius * Math.sin(angle);
-            world.spawnParticle(idleParticle, x, center.getY(), z, 1, 0, 0, 0, 0);
+            double x = base.getX() + radius * Math.cos(angle);
+            double z = base.getZ() + radius * Math.sin(angle);
+            world.spawnParticle(idleParticle, x, base.getY() + height, z, 1, 0, 0, 0, 0);
         }
     }
 

@@ -28,6 +28,7 @@ public class CombatLogPlugin extends JavaPlugin {
     private DecentHologramsHook decentHolograms;
     private CrateRewardSessionManager crateRewardSessions;
     private StatsManager stats;
+    private CratePreviewGuiManager cratePreviewGui;
 
     @Override
     public void onEnable() {
@@ -49,6 +50,7 @@ public class CombatLogPlugin extends JavaPlugin {
         decentHolograms = new DecentHologramsHook(this);
         crateRewardSessions = new CrateRewardSessionManager();
         stats = new StatsManager(this);
+        cratePreviewGui = new CratePreviewGuiManager(this);
         crates.refreshAllHolograms();
 
         setupEconomy();
@@ -84,6 +86,7 @@ public class CombatLogPlugin extends JavaPlugin {
         getCommand("infoholo").setExecutor(new InfoHologramCommand(this));
         getCommand("info-serwer").setExecutor(new InfoServerCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
+        getCommand("top").setExecutor(new TopCommand(this));
 
         getServer().getScheduler().runTaskTimer(this, new CombatActionBarTask(this), 20L, 20L);
 
@@ -236,5 +239,9 @@ public class CombatLogPlugin extends JavaPlugin {
 
     public StatsManager getStats() {
         return stats;
+    }
+
+    public CratePreviewGuiManager getCratePreviewGui() {
+        return cratePreviewGui;
     }
 }

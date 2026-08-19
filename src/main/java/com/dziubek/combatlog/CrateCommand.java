@@ -31,8 +31,9 @@ public class CrateCommand implements CommandExecutor {
 
         String sub = args[0].toLowerCase();
 
-        // "list" moze kazdy, reszta to admin
-        if (!sub.equals("list") && !sender.hasPermission(ADMIN_PERMISSION)) {
+        // "list" i "preview" moze kazdy, reszta to admin
+        boolean publicSub = sub.equals("list") || sub.equals("preview");
+        if (!publicSub && !sender.hasPermission(ADMIN_PERMISSION)) {
             sender.sendMessage("§cNie masz uprawnień do zarządzania skrzyniami.");
             return true;
         }
@@ -52,6 +53,10 @@ public class CrateCommand implements CommandExecutor {
                 return handleSetEffect(sender, args);
             case "setprivate":
                 return handleSetPrivate(sender, args);
+            case "setfreecooldown":
+                return handleSetFreeCooldown(sender, args);
+            case "preview":
+                return handlePreview(sender, args);
             case "list":
                 List<String> names = plugin.getCrates().names();
                 if (names.isEmpty()) {
@@ -79,6 +84,8 @@ public class CrateCommand implements CommandExecutor {
         sender.sendMessage("§c/crate sethologram <nazwa> <tekst> §7- ustawia napis hologramu (obsługuje &kody kolorów)");
         sender.sendMessage("§c/crate seteffect <nazwa> <efekt> §7- ustawia efekt otwarcia: " + CrateEffect.listNames());
         sender.sendMessage("§c/crate setprivate <nazwa> <true|false> §7- wymaga uprawnienia LuckPerms do otwarcia");
+        sender.sendMessage("§c/crate setfreecooldown <nazwa> <godziny> §7- darmowe otwarcie bez klucza co X godzin (0 = wyłącz)");
+        sender.sendMessage("§c/crate preview <nazwa> §7- podgląd zawartości skrzyni z procentami (dla każdego)");
         sender.sendMessage("§c/crate list §7- lista skrzyń");
     }
 
@@ -209,6 +216,57 @@ public class CrateCommand implements CommandExecutor {
         } else {
             sender.sendMessage("§aSkrzynia '" + name + "' jest teraz publiczna (bez wymogu uprawnienia).");
         }
+        return true;
+    }
+
+    private boolean handleSetFreeCooldown(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("§cUżycie: /crate setfreecooldown <nazwa> <godziny> §7(0 = wyłącz)");
+            return true;
+        }
+        String name = args[1];
+        if (!plugin.getCrates().exists(name)) {
+            sender.sendMessage("§cSkrzynia '" + name + "' nie istnieje.");
+            return true;
+        }
+
+        int hours;
+        try {
+            hours = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cGodziny muszą być liczbą.");
+            return true;
+        }
+        if (hours < 0) {
+            sender.sendMessage("§cLiczba godzin nie może być ujemna.");
+            return true;
+        }
+
+        plugin.getCrates().setFreeCooldownHours(name, hours);
+        if (hours == 0) {
+            sender.sendMessage("§aWyłączono darmowe otwieranie skrzyni '" + name + "'.");
+        } else {
+            sender.sendMessage("§aGracze mogą teraz otworzyć skrzynię '" + name + "' za darmo raz na " + hours + "h (bez klucza).");
+        }
+        return true;
+    }
+
+    private boolean handlePreview(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("Tej komendy może użyć tylko gracz.");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cUżycie: /crate preview <nazwa>");
+            return true;
+        }
+        String name = args[1];
+        if (!plugin.getCrates().exists(name)) {
+            sender.sendMessage("§cSkrzynia '" + name + "' nie istnieje.");
+            return true;
+        }
+
+        plugin.getCratePreviewGui().open((Player) sender, name);
         return true;
     }
 

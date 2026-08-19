@@ -27,6 +27,12 @@ public class CrateGuiListener implements Listener {
 
         if (event.getInventory().getHolder() instanceof CrateConfigGuiHolder) {
             handleConfigClick(event);
+            return;
+        }
+
+        if (event.getInventory().getHolder() instanceof CratePreviewGuiHolder) {
+            // czysto informacyjne GUI - nic nie da się stąd zabrać
+            event.setCancelled(true);
         }
     }
 

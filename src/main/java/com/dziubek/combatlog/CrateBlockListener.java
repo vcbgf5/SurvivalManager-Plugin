@@ -14,6 +14,8 @@ import java.util.List;
  * Obsługuje kliknięcie w fizycznie postawioną i przypiętą (/crate bind) skrzynię w świecie.
  * Wymaga klucza pasującego do danej skrzyni - w przeciwieństwie do starego CrateKeyListener,
  * który pozwala otwierać kluczem "w powietrzu" (dla skrzyń bez przypiętej lokalizacji).
+ * Jeśli skrzynia ma ustawiony darmowy cooldown (/crate setfreecooldown), gracz bez klucza
+ * może ją i tak otworzyć raz na X godzin.
  */
 public class CrateBlockListener implements Listener {
 
@@ -53,8 +55,25 @@ public class CrateBlockListener implements Listener {
 
         ItemStack item = event.getItem();
         String keyCrateName = plugin.getCrates().getKeyCrateName(item);
-        if (keyCrateName == null || !keyCrateName.equals(crateName)) {
-            player.sendMessage("§cPotrzebujesz klucza do skrzyni '" + crateName + "', aby ją otworzyć!");
+        boolean hasValidKey = keyCrateName != null && keyCrateName.equals(crateName);
+
+        if (!hasValidKey) {
+            if (plugin.getCrates().canUseFreeOpen(crateName, player.getUniqueId())) {
+                plugin.getCrates().markFreeUsed(crateName, player.getUniqueId());
+                player.sendMessage("§aOtwierasz skrzynię '" + crateName + "' za darmo!");
+                plugin.getCrates().getEffect(crateName).play(plugin, event.getClickedBlock().getLocation());
+                CrateRollAnimation.play(plugin, player, crateName, rewards);
+                return;
+            }
+
+            long freeLeft = plugin.getCrates().freeSecondsLeft(crateName, player.getUniqueId());
+            if (freeLeft > 0) {
+                player.sendMessage("§cPotrzebujesz klucza do skrzyni '" + crateName
+                        + "' §7(darmowe otwarcie za " + formatDuration(freeLeft) + ")");
+            } else {
+                player.sendMessage("§cPotrzebujesz klucza do skrzyni '" + crateName + "', aby ją otworzyć!");
+            }
+            plugin.getCratePreviewGui().open(player, crateName);
             return;
         }
 
@@ -66,5 +85,18 @@ public class CrateBlockListener implements Listener {
 
         plugin.getCrates().getEffect(crateName).play(plugin, event.getClickedBlock().getLocation());
         CrateRollAnimation.play(plugin, player, crateName, rewards);
+    }
+
+    private static String formatDuration(long totalSeconds) {
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        if (hours > 0) {
+            return hours + "h " + minutes + "min";
+        }
+        long seconds = totalSeconds % 60;
+        if (minutes > 0) {
+            return minutes + "min " + seconds + "s";
+        }
+        return seconds + "s";
     }
 }

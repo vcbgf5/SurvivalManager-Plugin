@@ -397,6 +397,49 @@ public class CrateManager {
         return "combatlog.crate.private." + name;
     }
 
+    // ===================== Darmowe otwarcie co X godzin (bez klucza) =====================
+
+    public int getFreeCooldownHours(String name) {
+        return data.getInt(name + ".free-cooldown-hours", 0);
+    }
+
+    public void setFreeCooldownHours(String name, int hours) {
+        data.set(name + ".free-cooldown-hours", hours);
+        save();
+        refreshHolograms(name);
+    }
+
+    public boolean canUseFreeOpen(String name, UUID uuid) {
+        int hours = getFreeCooldownHours(name);
+        if (hours <= 0) {
+            return false;
+        }
+        long last = data.getLong(name + ".free-last-use." + uuid, -1);
+        if (last < 0) {
+            return true;
+        }
+        return System.currentTimeMillis() - last >= hours * 3_600_000L;
+    }
+
+    public long freeSecondsLeft(String name, UUID uuid) {
+        int hours = getFreeCooldownHours(name);
+        if (hours <= 0) {
+            return 0;
+        }
+        long last = data.getLong(name + ".free-last-use." + uuid, -1);
+        if (last < 0) {
+            return 0;
+        }
+        long totalMs = hours * 3_600_000L;
+        long elapsedMs = System.currentTimeMillis() - last;
+        return Math.max(0, (totalMs - elapsedMs) / 1000L);
+    }
+
+    public void markFreeUsed(String name, UUID uuid) {
+        data.set(name + ".free-last-use." + uuid, System.currentTimeMillis());
+        save();
+    }
+
     public String getHologramTitle(String name) {
         return data.getString(name + ".hologram-title", "&6&l✦ " + name + " ✦");
     }
@@ -459,6 +502,9 @@ public class CrateManager {
             lines.add("&c&l🔒 Wymaga uprawnienia");
         }
         lines.add("&7Kliknij PPM z kluczem, by otworzyć!");
+        if (getFreeCooldownHours(name) > 0) {
+            lines.add("&a&l🎁 Darmowe co " + getFreeCooldownHours(name) + "h");
+        }
         lines.add("&8Efekt: &f" + getEffect(name).getDisplayName());
         return lines;
     }

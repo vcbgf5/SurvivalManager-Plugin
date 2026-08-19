@@ -1,10 +1,13 @@
 package com.dziubek.combatlog;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class StatsManager {
@@ -54,6 +57,44 @@ public class StatsManager {
 
     public double getMoneySpent(UUID uuid) {
         return data.getDouble("players." + uuid + ".money-spent", 0);
+    }
+
+    /**
+     * Top N graczy wg wybranej statystyki ("crates", "daily" albo "money"), malejąco.
+     */
+    public List<TopEntry> topN(String stat, int limit) {
+        List<TopEntry> list = new ArrayList<>();
+        ConfigurationSection players = data.getConfigurationSection("players");
+        if (players == null) {
+            return list;
+        }
+
+        for (String uuidStr : players.getKeys(false)) {
+            String base = "players." + uuidStr;
+            double value;
+            switch (stat) {
+                case "daily":
+                    value = data.getInt(base + ".daily-claims", 0);
+                    break;
+                case "money":
+                    value = data.getDouble(base + ".money-spent", 0);
+                    break;
+                default:
+                    value = data.getInt(base + ".crates-opened", 0);
+                    break;
+            }
+            if (value <= 0) {
+                continue;
+            }
+            String name = data.getString(base + ".name", uuidStr);
+            list.add(new TopEntry(name, value));
+        }
+
+        list.sort((a, b) -> Double.compare(b.value(), a.value()));
+        return list.size() > limit ? list.subList(0, limit) : list;
+    }
+
+    public record TopEntry(String name, double value) {
     }
 
     private void increment(UUID uuid, String name, String key) {

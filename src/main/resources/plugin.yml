@@ -41,8 +41,8 @@ commands:
     description: Odbiera codzienna nagrode (z efektem) lub konfiguruje dzien/efekt (admin) - /daily setday <1-7>, /daily seteffect <efekt>
     usage: /daily lub /daily setday <1-7> lub /daily seteffect <efekt>
   crate:
-    description: Skrzynie - /crate create|givekey|bind|unbind|sethologram|seteffect|list
-    usage: /crate create|givekey|bind|unbind|sethologram|seteffect|list
+    description: Skrzynie - /crate create|givekey|bind|unbind|sethologram|seteffect|setprivate|setfreecooldown|preview|list
+    usage: /crate create|givekey|bind|unbind|sethologram|seteffect|setprivate|setfreecooldown|preview|list
   fixmovement:
     description: Resetuje predkosc chodzenia/latania gracza (naprawia zablokowany ruch po auth-pluginach)
     usage: /fixmovement <gracz>
@@ -58,6 +58,9 @@ commands:
   stats:
     description: Pokazuje statystyki gracza (skrzynie, daily, wydatki) - /stats [gracz] dla adminow
     usage: /stats [gracz]
+  top:
+    description: Ranking graczy - /top <crates|daily|money> [ilosc]
+    usage: /top [crates|daily|money] [ilosc]
 
 softdepend: [WorldGuard, Vault, DecentHolograms]
 

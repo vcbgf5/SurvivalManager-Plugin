@@ -62,7 +62,6 @@ public class CombatLogPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new HomeGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new DailyGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateGuiListener(this), this);
-        getServer().getPluginManager().registerEvents(new CrateKeyListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateBlockListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateRewardChatListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopGuiListener(this), this);
@@ -81,6 +80,7 @@ public class CombatLogPlugin extends JavaPlugin {
         getCommand("kit").setExecutor(new KitCommand(this));
         getCommand("daily").setExecutor(new DailyCommand(this));
         getCommand("crate").setExecutor(new CrateCommand(this));
+        getCommand("crate").setTabCompleter(new CrateTabCompleter(this));
         getCommand("fixmovement").setExecutor(new FixMovementCommand());
         getCommand("sklep").setExecutor(new ShopCommand(this));
         getCommand("infoholo").setExecutor(new InfoHologramCommand(this));
@@ -89,6 +89,7 @@ public class CombatLogPlugin extends JavaPlugin {
         getCommand("top").setExecutor(new TopCommand(this));
 
         getServer().getScheduler().runTaskTimer(this, new CombatActionBarTask(this), 20L, 20L);
+        getServer().getScheduler().runTaskTimer(this, new CrateIdleEffectTask(this), 100L, 80L);
 
         boolean worldGuardFound = getServer().getPluginManager().getPlugin("WorldGuard") != null;
         if (worldGuardFound) {

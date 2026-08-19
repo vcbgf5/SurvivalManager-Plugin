@@ -12,8 +12,7 @@ import java.util.List;
 
 /**
  * Obsługuje kliknięcie w fizycznie postawioną i przypiętą (/crate bind) skrzynię w świecie.
- * Wymaga klucza pasującego do danej skrzyni - w przeciwieństwie do starego CrateKeyListener,
- * który pozwala otwierać kluczem "w powietrzu" (dla skrzyń bez przypiętej lokalizacji).
+ * To jedyny sposób na otwarcie skrzyni - klucz "w powietrzu" nie działa, trzeba kliknąć blok.
  * Jeśli skrzynia ma ustawiony darmowy cooldown (/crate setfreecooldown), gracz bez klucza
  * może ją i tak otworzyć raz na X godzin.
  */

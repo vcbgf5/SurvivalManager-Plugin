@@ -72,6 +72,20 @@ public enum CrateEffect {
         world.playSound(center, sound, 1.0f, 1.0f);
     }
 
+    /**
+     * Subtelny, cichy wariant efektu odtwarzany co jakiś czas, gdy nikt akurat nie otwiera skrzyni -
+     * w przeciwieństwie do play() nie ma dźwięku ani dużej ilości cząsteczek, żeby nie irytował graczy.
+     */
+    public void playIdle(Location blockLocation) {
+        Location center = blockLocation.clone().add(0.5, 1.0, 0.5);
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+        Particle idleParticle = (this == SPIRALA) ? Particle.END_ROD : particle;
+        world.spawnParticle(idleParticle, center, 3, 0.25, 0.3, 0.25, 0.01);
+    }
+
     private void playSpiral(CombatLogPlugin plugin, Location center) {
         World world = center.getWorld();
         if (world == null) {

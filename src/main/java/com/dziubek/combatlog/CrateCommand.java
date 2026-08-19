@@ -55,6 +55,8 @@ public class CrateCommand implements CommandExecutor {
                 return handleSetPrivate(sender, args);
             case "setfreecooldown":
                 return handleSetFreeCooldown(sender, args);
+            case "setidleeffect":
+                return handleSetIdleEffect(sender, args);
             case "preview":
                 return handlePreview(sender, args);
             case "list":
@@ -85,6 +87,7 @@ public class CrateCommand implements CommandExecutor {
         sender.sendMessage("§c/crate seteffect <nazwa> <efekt> §7- ustawia efekt otwarcia: " + CrateEffect.listNames());
         sender.sendMessage("§c/crate setprivate <nazwa> <true|false> §7- wymaga uprawnienia LuckPerms do otwarcia");
         sender.sendMessage("§c/crate setfreecooldown <nazwa> <godziny> §7- darmowe otwarcie bez klucza co X godzin (0 = wyłącz)");
+        sender.sendMessage("§c/crate setidleeffect <nazwa> <efekt|none> §7- cichy efekt widoczny gdy nikt nie otwiera skrzyni");
         sender.sendMessage("§c/crate preview <nazwa> §7- podgląd zawartości skrzyni z procentami (dla każdego)");
         sender.sendMessage("§c/crate list §7- lista skrzyń");
     }
@@ -248,6 +251,35 @@ public class CrateCommand implements CommandExecutor {
         } else {
             sender.sendMessage("§aGracze mogą teraz otworzyć skrzynię '" + name + "' za darmo raz na " + hours + "h (bez klucza).");
         }
+        return true;
+    }
+
+    private boolean handleSetIdleEffect(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("§cUżycie: /crate setidleeffect <nazwa> <efekt|none>");
+            return true;
+        }
+        String name = args[1];
+        if (!plugin.getCrates().exists(name)) {
+            sender.sendMessage("§cSkrzynia '" + name + "' nie istnieje.");
+            return true;
+        }
+
+        if (args[2].equalsIgnoreCase("none")) {
+            plugin.getCrates().setIdleEffect(name, null);
+            sender.sendMessage("§aWyłączono efekt idle dla skrzyni '" + name + "'.");
+            return true;
+        }
+
+        CrateEffect effect = CrateEffect.fromString(args[2]);
+        if (effect == null) {
+            sender.sendMessage("§cNieznany efekt. Dostępne: " + CrateEffect.listNames() + ", none");
+            return true;
+        }
+
+        plugin.getCrates().setIdleEffect(name, effect);
+        sender.sendMessage("§aUstawiono efekt idle '" + effect.getDisplayName()
+                + "' dla skrzyni '" + name + "' (widoczny, gdy nikt jej nie otwiera).");
         return true;
     }
 

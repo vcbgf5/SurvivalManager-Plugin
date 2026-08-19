@@ -380,6 +380,18 @@ public class CrateManager {
         refreshHolograms(name);
     }
 
+    /**
+     * Efekt ambientowy widoczny przy skrzyni gdy nikt jej nie otwiera. null = wyłączony (domyślnie).
+     */
+    public CrateEffect getIdleEffect(String name) {
+        return CrateEffect.fromString(data.getString(name + ".idle-effect"));
+    }
+
+    public void setIdleEffect(String name, CrateEffect effect) {
+        data.set(name + ".idle-effect", effect == null ? null : effect.name());
+        save();
+    }
+
     public boolean isPrivate(String name) {
         return data.getBoolean(name + ".private", false);
     }
@@ -472,6 +484,24 @@ public class CrateManager {
         }
     }
 
+    /**
+     * Wszystkie fizyczne lokalizacje danej skrzyni (dla efektu idle).
+     */
+    public List<Location> getAllLocations(String name) {
+        List<Location> list = new ArrayList<>();
+        ConfigurationSection locations = data.getConfigurationSection(name + ".locations");
+        if (locations == null) {
+            return list;
+        }
+        for (String id : locations.getKeys(false)) {
+            Location location = readLocation(name, id);
+            if (location != null) {
+                list.add(location);
+            }
+        }
+        return list;
+    }
+
     private Location readLocation(String name, String id) {
         String base = name + ".locations." + id;
         String worldName = data.getString(base + ".world");
@@ -483,7 +513,7 @@ public class CrateManager {
     }
 
     private void createHologram(String name, String id, Location blockLocation) {
-        Location above = blockLocation.clone().add(0.5, 1.5, 0.5);
+        Location above = blockLocation.clone().add(0.5, 1.8, 0.5);
         plugin.getDecentHolograms().createInfoHologram(hologramId(name, id), above, buildHologramLines(name));
     }
 
@@ -505,7 +535,6 @@ public class CrateManager {
         if (getFreeCooldownHours(name) > 0) {
             lines.add("&a&l🎁 Darmowe co " + getFreeCooldownHours(name) + "h");
         }
-        lines.add("&8Efekt: &f" + getEffect(name).getDisplayName());
         return lines;
     }
 

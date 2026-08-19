@@ -25,3 +25,13 @@ jobs:
         with:
           name: SurvivalManager
           path: target/SurvivalManager.jar
+
+      - name: Create/refresh Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Najnowszy build"
+          make_latest: true
+          files: target/SurvivalManager.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

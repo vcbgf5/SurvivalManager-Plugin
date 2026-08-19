@@ -528,12 +528,18 @@ public class CrateManager {
     private List<String> buildHologramLines(String name) {
         List<String> lines = new ArrayList<>();
         lines.add(getHologramTitle(name));
-        if (isPrivate(name)) {
-            lines.add("&c&l🔒 Wymaga uprawnienia");
-        }
         lines.add("&7Kliknij PPM z kluczem, by otworzyć!");
+
+        List<String> extras = new ArrayList<>();
+        if (isPrivate(name)) {
+            extras.add("&c🔒 Prywatna");
+        }
         if (getFreeCooldownHours(name) > 0) {
-            lines.add("&a&l🎁 Darmowe co " + getFreeCooldownHours(name) + "h");
+            extras.add("&a🎁 Darmowe co " + getFreeCooldownHours(name) + "h");
+        }
+        if (!extras.isEmpty()) {
+            lines.add("&8&m--------------------");
+            lines.addAll(extras);
         }
         return lines;
     }

@@ -41,6 +41,8 @@ public class HomeGuiManager {
             inv.setItem(slot - 1, item);
         }
 
+        GuiDecor.fillEmpty(inv);
         player.openInventory(inv);
+        GuiDecor.playOpenSound(player);
     }
 }

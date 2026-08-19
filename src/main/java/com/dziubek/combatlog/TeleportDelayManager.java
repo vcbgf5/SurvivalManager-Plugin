@@ -3,6 +3,7 @@ package com.dziubek.combatlog;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -72,7 +73,9 @@ public class TeleportDelayManager {
                 ticksLeft -= 20;
 
                 if (ticksLeft <= 0) {
+                    player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
                     player.teleport(destination);
+                    player.playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
                     player.sendMessage("§aTeleportowano!");
                     pending.remove(player.getUniqueId());
                     cancel();

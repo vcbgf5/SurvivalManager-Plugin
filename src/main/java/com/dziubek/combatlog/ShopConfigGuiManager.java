@@ -56,6 +56,7 @@ public class ShopConfigGuiManager {
         inv.setItem(7, build(new ItemStack(Material.EMERALD), "&a&lZAPISZ", Collections.singletonList("&7Zapisuje przedmiot do sklepu")));
         inv.setItem(8, build(new ItemStack(Material.BARRIER), "&c&lANULUJ", Collections.emptyList()));
 
+        GuiDecor.fillEmpty(inv);
         player.openInventory(inv);
     }
 

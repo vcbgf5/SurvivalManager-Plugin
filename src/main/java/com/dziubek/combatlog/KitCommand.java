@@ -1,5 +1,6 @@
 package com.dziubek.combatlog;
 
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -81,6 +82,7 @@ public class KitCommand implements CommandExecutor {
         }
 
         plugin.getKits().markUsed(name, player.getUniqueId());
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
         player.sendMessage("§aOtrzymujesz kit '" + name + "'!");
         return true;
     }

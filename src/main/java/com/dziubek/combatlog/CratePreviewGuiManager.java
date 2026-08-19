@@ -37,7 +37,9 @@ public class CratePreviewGuiManager {
             slot++;
         }
 
+        GuiDecor.fillEmpty(inv);
         player.openInventory(inv);
+        GuiDecor.playOpenSound(player);
     }
 
     private ItemStack buildDisplayItem(CrateReward reward) {

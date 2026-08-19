@@ -48,6 +48,7 @@ public class DailyCommand implements CommandExecutor {
             if (existing != null) {
                 inv.setItem(4, existing);
             }
+            GuiDecor.fillEmpty(inv);
             player.openInventory(inv);
             player.sendMessage("§aUmieść nagrodę w środkowym slocie i zamknij ekwipunek, aby zapisać.");
             return true;

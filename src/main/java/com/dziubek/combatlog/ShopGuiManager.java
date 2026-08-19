@@ -47,7 +47,9 @@ public class ShopGuiManager {
             slot++;
         }
 
+        GuiDecor.fillEmpty(inv);
         player.openInventory(inv);
+        GuiDecor.playOpenSound(player);
     }
 
     public void openCategory(Player player, String category) {
@@ -83,7 +85,9 @@ public class ShopGuiManager {
             slot++;
         }
 
+        GuiDecor.fillEmpty(inv);
         player.openInventory(inv);
+        GuiDecor.playOpenSound(player);
     }
 
     private String typeBadge(ShopItemType type) {

@@ -1,0 +1,79 @@
+name: SurvivalManager
+main: com.dziubek.combatlog.CombatLogPlugin
+version: 1.0.0
+api-version: '1.21'
+author: Dziubek
+description: Combat tag 10s - wyjscie podczas walki = smierc i utrata itemow. Blokada wejscia do regionu Spawn01 podczas walki (WorldGuard).
+
+commands:
+  testcombat:
+    description: Testowo naklada combat tag na wywolujacego (do testow bez PvP)
+    usage: /testcombat
+  testcombatoff:
+    description: Zdejmuje combat tag z wywolujacego
+    usage: /testcombatoff
+  testcombatstatus:
+    description: Pokazuje ile sekund walki zostalo wywolujacemu
+    usage: /testcombatstatus
+  setsurvivalspawn:
+    description: Ustawia spawn survivala w miejscu gdzie stoisz
+    usage: /setsurvivalspawn
+    permission: combatlog.setspawn
+  spawn:
+    description: Teleportuje na spawn survivala (zablokowane podczas walki)
+    usage: /spawn
+  tpa:
+    description: Wysyla prosbe o teleportacje do gracza
+    usage: /tpa <gracz>
+  tpaccept:
+    description: Akceptuje prosbe o teleportacje
+    usage: /tpaccept
+  tpdeny:
+    description: Odrzuca prosbe o teleportacje
+    usage: /tpdeny
+  home:
+    description: Otwiera menu z homeami (10 slotow) lub ustawia home - /home set <numer>
+    usage: /home [set <numer>]
+  kit:
+    description: Odbiera kit, tworzy go (admin) lub migruje stare kity - /kit create <nazwa>, /kit migrate
+    usage: /kit <nazwa> lub /kit create <nazwa> lub /kit migrate
+  daily:
+    description: Odbiera codzienna nagrode lub konfiguruje dzien (admin) - /daily setday <1-7>
+    usage: /daily lub /daily setday <1-7>
+  crate:
+    description: Skrzynie - /crate create <nazwa>, /crate givekey <nazwa> <gracz> [ilosc], /crate list
+    usage: /crate create|givekey|list
+  fixmovement:
+    description: Resetuje predkosc chodzenia/latania gracza (naprawia zablokowany ruch po auth-pluginach)
+    usage: /fixmovement <gracz>
+  sklep:
+    description: Otwiera sklep z GUI - /sklep create|additem|removeitem|removecategory do konfiguracji (admin)
+    usage: /sklep
+  infoholo:
+    description: Tworzy hologram informacyjny o crate/kit/daily/sklep (wymaga DecentHolograms) - /infoholo create|remove <id>
+    usage: /infoholo create|remove <id>
+  info-serwer:
+    description: Wyswietla szczegolowe informacje o serwerze na czacie
+    usage: /info-serwer
+
+softdepend: [WorldGuard, Vault, DecentHolograms]
+
+permissions:
+  combatlog.setspawn:
+    description: Pozwala ustawic spawn survivala
+    default: op
+  combatlog.crate.admin:
+    description: Pozwala zarzadzac skrzyniami (create, givekey)
+    default: op
+  combatlog.shop.admin:
+    description: Pozwala zarzadzac sklepem (create, additem, removeitem, removecategory)
+    default: op
+  combatlog.daily.admin:
+    description: Pozwala konfigurowac nagrody daily
+    default: op
+  combatlog.kit.admin:
+    description: Pozwala tworzyc kity i je migrowac
+    default: op
+  combatlog.infoholo.admin:
+    description: Pozwala tworzyc/usuwac hologramy informacyjne
+    default: op

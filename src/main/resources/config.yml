@@ -1,0 +1,16 @@
+combat-duration-seconds: 10
+
+# nazwa regionu WorldGuard, do którego nie można wejść podczas walki
+protected-region: "Spawn01"
+
+messages:
+  tagged: "&cJesteś w walce! Zostało: {time}s"
+  quit-punished: "&c{player} wyszedł podczas walki i stracił przedmioty!"
+  region-blocked: "&cNie możesz wejść na spawn podczas walki!"
+  combat-over: "&aWalka zakończona."
+
+# ile sekund ważna jest prośba /tpa zanim wygaśnie
+tpa-timeout-seconds: 60
+
+# ile sekund gracz musi postać bez ruchu, żeby /spawn, /tpa i /home go teleportowały
+teleport-delay-seconds: 5

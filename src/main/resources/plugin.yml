@@ -50,8 +50,8 @@ commands:
     description: Otwiera sklep z GUI - /sklep create|additem|removeitem|removecategory do konfiguracji (admin)
     usage: /sklep
   infoholo:
-    description: Tworzy hologram informacyjny o crate/kit/daily/sklep (wymaga DecentHolograms) - /infoholo create|remove <id>
-    usage: /infoholo create|remove <id>
+    description: Tworzy osobny maly hologram dla jednej funkcji (wymaga DecentHolograms) - /infoholo create <crates|kits|daily|shop> <id>, /infoholo remove <id>
+    usage: /infoholo create <crates|kits|daily|shop> <id> lub /infoholo create|remove <id>
   info-serwer:
     description: Wyswietla szczegolowe informacje o serwerze na czacie
     usage: /info-serwer

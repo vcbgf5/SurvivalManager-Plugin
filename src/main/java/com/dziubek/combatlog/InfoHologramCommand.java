@@ -11,6 +11,7 @@ import java.util.List;
 public class InfoHologramCommand implements CommandExecutor {
 
     private static final String ADMIN_PERMISSION = "combatlog.infoholo.admin";
+    private static final List<String> TYPES = List.of("crates", "kits", "daily", "shop");
 
     private final CombatLogPlugin plugin;
 
@@ -37,79 +38,130 @@ public class InfoHologramCommand implements CommandExecutor {
         }
 
         if (args.length < 2) {
-            player.sendMessage("§cUżycie: /infoholo create <id> §7| §c/infoholo remove <id>");
+            sendUsage(player);
             return true;
         }
 
         String sub = args[0].toLowerCase();
-        String id = args[1];
 
         if (sub.equals("remove")) {
-            plugin.getDecentHolograms().removeHologram(id);
-            player.sendMessage("§aUsunięto hologram '" + id + "'.");
+            plugin.getDecentHolograms().removeHologram(args[1]);
+            player.sendMessage("§aUsunięto hologram '" + args[1] + "'.");
             return true;
         }
 
         if (!sub.equals("create")) {
-            player.sendMessage("§cUżycie: /infoholo create <id> §7| §c/infoholo remove <id>");
+            sendUsage(player);
             return true;
         }
 
-        List<String> lines = buildLines();
+        if (args.length < 3) {
+            sendUsage(player);
+            return true;
+        }
+
+        String type = args[1].toLowerCase();
+        if (!TYPES.contains(type)) {
+            player.sendMessage("§cNieznany typ. Dostępne: " + String.join(", ", TYPES));
+            return true;
+        }
+
+        String id = args[2];
+        List<String> lines = buildLines(type);
         plugin.getDecentHolograms().createInfoHologram(id, player.getLocation(), lines);
 
-        // klik na hologram (dowolna strona 0) -> wyświetla graczowi rozbudowane info na czacie.
-        // Robimy to komendą konsoli /dh p addaction - jeśli składnia różni się
-        // w Twojej wersji DecentHolograms, sprawdź w grze: /dh p help addaction
+        // klik na hologram -> wykonuje komendę powiązaną z danym typem funkcji.
         plugin.getServer().dispatchCommand(
                 plugin.getServer().getConsoleSender(),
-                "dh p addaction " + id + " 0 left_click COMMAND:/info-serwer"
+                "dh p addaction " + id + " 0 left_click COMMAND:" + commandForType(type)
         );
 
-        player.sendMessage("§aStworzono informacyjny hologram '" + id + "' w tym miejscu.");
+        player.sendMessage("§aStworzono hologram '" + type + "' (id: " + id + ") w tym miejscu.");
         return true;
     }
 
-    private List<String> buildLines() {
+    private void sendUsage(Player player) {
+        player.sendMessage("§cUżycie: /infoholo create <typ> <id> §7| §c/infoholo remove <id>");
+        player.sendMessage("§7Dostępne typy: §f" + String.join(", ", TYPES));
+        player.sendMessage("§7Każdy typ to osobny, mały hologram - postaw ich tyle ile chcesz, gdzie chcesz.");
+    }
+
+    private String commandForType(String type) {
+        switch (type) {
+            case "crates":
+                return "/crate";
+            case "kits":
+                return "/kit";
+            case "daily":
+                return "/daily";
+            case "shop":
+                return "/sklep";
+            default:
+                return "/info-serwer";
+        }
+    }
+
+    private List<String> buildLines(String type) {
+        switch (type) {
+            case "crates":
+                return buildCratesLines();
+            case "kits":
+                return buildKitsLines();
+            case "daily":
+                return buildDailyLines();
+            case "shop":
+                return buildShopLines();
+            default:
+                return new ArrayList<>();
+        }
+    }
+
+    private List<String> buildCratesLines() {
         List<String> lines = new ArrayList<>();
-
-        lines.add("&6&l✦✦✦ &e&lSURVIVAL &6&l✦✦✦");
-        lines.add("&e&l▶ Kliknij mnie po więcej info! &e◀");
-        lines.add("&7Wszystko czego potrzebujesz w jednym miejscu");
-        lines.add("&8&m                                        ");
-
-        lines.add("#ICON: CHEST");
-        lines.add("&e&lSkrzynie &7» &f/crate");
-        List<String> crateNames = plugin.getCrates().names();
-        lines.add(crateNames.isEmpty()
+        lines.add("&6&l✦ Skrzynie ✦");
+        lines.add("&7Komenda: &f/crate");
+        List<String> names = plugin.getCrates().names();
+        lines.add(names.isEmpty()
                 ? "&7Jeszcze brak skonfigurowanych skrzyń"
-                : "&7Dostępne: &f" + String.join("&7, &f", crateNames));
-        lines.add(" ");
+                : "&7Dostępne: &f" + String.join("&7, &f", names));
+        lines.add("&8&m--------------------");
+        lines.add("&7Kliknij, aby otworzyć &f/crate");
+        return lines;
+    }
 
-        lines.add("#ICON: DIAMOND_SWORD");
-        lines.add("&b&lKity &7» &f/kit <nazwa>");
-        List<String> kitNames = plugin.getKits().names();
-        lines.add(kitNames.isEmpty()
+    private List<String> buildKitsLines() {
+        List<String> lines = new ArrayList<>();
+        lines.add("&b&l✦ Kity ✦");
+        lines.add("&7Komenda: &f/kit <nazwa>");
+        List<String> names = plugin.getKits().names();
+        lines.add(names.isEmpty()
                 ? "&7Jeszcze brak skonfigurowanych kitów"
-                : "&7Dostępne: &f" + String.join("&7, &f", kitNames));
-        lines.add(" ");
+                : "&7Dostępne: &f" + String.join("&7, &f", names));
+        lines.add("&8&m--------------------");
+        lines.add("&7Kliknij, aby otworzyć &f/kit");
+        return lines;
+    }
 
-        lines.add("#ICON: SUNFLOWER");
-        lines.add("&a&lDaily &7» &f/daily");
+    private List<String> buildDailyLines() {
+        List<String> lines = new ArrayList<>();
+        lines.add("&a&l✦ Daily ✦");
+        lines.add("&7Komenda: &f/daily");
         lines.add("&7Odbieraj codzienną nagrodę - 7 dni z rzędu!");
-        lines.add(" ");
+        lines.add("&8&m--------------------");
+        lines.add("&7Kliknij, aby odebrać &f/daily");
+        return lines;
+    }
 
-        lines.add("#ICON: EMERALD");
-        lines.add("&d&lSklep &7» &f/sklep");
+    private List<String> buildShopLines() {
+        List<String> lines = new ArrayList<>();
+        lines.add("&d&l✦ Sklep ✦");
+        lines.add("&7Komenda: &f/sklep");
         List<String> categories = plugin.getShop().getCategories();
         lines.add(categories.isEmpty()
                 ? "&7Sklep jeszcze pusty"
                 : "&7Kategorie: &f" + String.join("&7, &f", categories));
-        lines.add(" ");
-
-        lines.add("&8&m                                        ");
-        lines.add("&7Kliknij hologram &e» &f/info-serwer");
-
+        lines.add("&8&m--------------------");
+        lines.add("&7Kliknij, aby otworzyć &f/sklep");
         return lines;
     }
 }

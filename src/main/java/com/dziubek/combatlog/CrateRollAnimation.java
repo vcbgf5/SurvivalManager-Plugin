@@ -57,6 +57,8 @@ public class CrateRollAnimation {
                 player.getWorld().dropItemNaturally(player.getLocation(), extra);
             }
 
+            plugin.getStats().recordCrateOpened(player.getUniqueId(), player.getName());
+
             String name = itemDisplayName(won);
             player.sendMessage("§aWygrałeś: §f" + name + " §7(x" + won.getAmount() + ") §7ze skrzyni '" + crateName + "'!");
         }

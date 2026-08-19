@@ -55,6 +55,9 @@ commands:
   info-serwer:
     description: Wyswietla szczegolowe informacje o serwerze na czacie
     usage: /info-serwer
+  stats:
+    description: Pokazuje statystyki gracza (skrzynie, daily, wydatki) - /stats [gracz] dla adminow
+    usage: /stats [gracz]
 
 softdepend: [WorldGuard, Vault, DecentHolograms]
 
@@ -76,4 +79,7 @@ permissions:
     default: op
   combatlog.infoholo.admin:
     description: Pozwala tworzyc/usuwac hologramy informacyjne
+    default: op
+  combatlog.stats.admin:
+    description: Pozwala sprawdzac statystyki innych graczy
     default: op

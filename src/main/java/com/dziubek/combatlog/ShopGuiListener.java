@@ -90,6 +90,7 @@ public class ShopGuiListener implements Listener {
         }
 
         plugin.getEconomy().withdrawPlayer(player, item.price);
+        plugin.getStats().recordMoneySpent(player.getUniqueId(), player.getName(), item.price);
 
         if (item.type == ShopItemType.KIT) {
             for (ItemStack kitItem : plugin.getKits().getItems(item.kitName)) {

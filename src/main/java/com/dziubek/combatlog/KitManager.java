@@ -131,15 +131,6 @@ public class KitManager {
         return list.contains(kitName);
     }
 
-    public void grantPurchase(String kitName, UUID uuid) {
-        List<String> list = data.getStringList("purchases." + uuid);
-        if (!list.contains(kitName)) {
-            list.add(kitName);
-            data.set("purchases." + uuid, list);
-            save();
-        }
-    }
-
     /**
      * Przenosi kity zapisane w starym (płaskim) formacie sprzed zmiany struktury
      * do nowego "kits.&lt;nazwa&gt;". Zwraca ile kitów zostało zmigrowanych.

@@ -43,6 +43,14 @@ public class CrateBlockListener implements Listener {
             return;
         }
 
+        if (plugin.getCrates().isPrivate(crateName)) {
+            String permission = plugin.getCrates().getPrivatePermission(crateName);
+            if (!player.hasPermission(permission)) {
+                player.sendMessage("§cTa skrzynia jest prywatna - brakuje Ci uprawnienia §f" + permission);
+                return;
+            }
+        }
+
         ItemStack item = event.getItem();
         String keyCrateName = plugin.getCrates().getKeyCrateName(item);
         if (keyCrateName == null || !keyCrateName.equals(crateName)) {

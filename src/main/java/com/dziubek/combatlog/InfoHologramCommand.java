@@ -120,10 +120,6 @@ public class InfoHologramCommand implements CommandExecutor {
         List<String> lines = new ArrayList<>();
         lines.add("&6&l✦ Skrzynie ✦");
         lines.add("&7Komenda: &f/crate");
-        List<String> names = plugin.getCrates().names();
-        lines.add(names.isEmpty()
-                ? "&7Jeszcze brak skonfigurowanych skrzyń"
-                : "&7Dostępne: &f" + String.join("&7, &f", names));
         lines.add("&8&m--------------------");
         lines.add("&7Kliknij, aby otworzyć &f/crate");
         return lines;
@@ -133,10 +129,6 @@ public class InfoHologramCommand implements CommandExecutor {
         List<String> lines = new ArrayList<>();
         lines.add("&b&l✦ Kity ✦");
         lines.add("&7Komenda: &f/kit <nazwa>");
-        List<String> names = plugin.getKits().names();
-        lines.add(names.isEmpty()
-                ? "&7Jeszcze brak skonfigurowanych kitów"
-                : "&7Dostępne: &f" + String.join("&7, &f", names));
         lines.add("&8&m--------------------");
         lines.add("&7Kliknij, aby otworzyć &f/kit");
         return lines;
@@ -156,10 +148,6 @@ public class InfoHologramCommand implements CommandExecutor {
         List<String> lines = new ArrayList<>();
         lines.add("&d&l✦ Sklep ✦");
         lines.add("&7Komenda: &f/sklep");
-        List<String> categories = plugin.getShop().getCategories();
-        lines.add(categories.isEmpty()
-                ? "&7Sklep jeszcze pusty"
-                : "&7Kategorie: &f" + String.join("&7, &f", categories));
         lines.add("&8&m--------------------");
         lines.add("&7Kliknij, aby otworzyć &f/sklep");
         return lines;

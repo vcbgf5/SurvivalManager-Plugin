@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,11 @@ public class ShopGuiListener implements Listener {
             return;
         }
 
+        if (item.type == ShopItemType.KIT && plugin.getKits().getItems(item.kitName).isEmpty()) {
+            player.sendMessage("§cTen kit nie ma jeszcze skonfigurowanej zawartości - zgłoś to administracji.");
+            return;
+        }
+
         double balance = plugin.getEconomy().getBalance(player);
         if (balance < item.price) {
             player.sendMessage("§cNie masz wystarczająco środków! Potrzebujesz §f" + item.price + "§c, masz §f" + String.format("%.2f", balance) + "§c.");
@@ -86,8 +92,13 @@ public class ShopGuiListener implements Listener {
         plugin.getEconomy().withdrawPlayer(player, item.price);
 
         if (item.type == ShopItemType.KIT) {
-            plugin.getKits().grantPurchase(item.kitName, player.getUniqueId());
-            player.sendMessage("§aOdblokowano kit '" + item.kitName + "'! Użyj §f/kit " + item.kitName + " §aaby go odebrać.");
+            for (ItemStack kitItem : plugin.getKits().getItems(item.kitName)) {
+                Map<Integer, ItemStack> leftover = player.getInventory().addItem(kitItem.clone());
+                for (ItemStack extra : leftover.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), extra);
+                }
+            }
+            player.sendMessage("§aKupiono! Otrzymujesz kit '" + item.kitName + "'.");
         } else {
             for (String cmd : item.commands) {
                 String parsed = cmd.replace("%player%", player.getName());

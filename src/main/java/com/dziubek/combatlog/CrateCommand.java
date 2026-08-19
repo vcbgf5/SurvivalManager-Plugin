@@ -50,6 +50,8 @@ public class CrateCommand implements CommandExecutor {
                 return handleSetHologram(sender, args);
             case "seteffect":
                 return handleSetEffect(sender, args);
+            case "setprivate":
+                return handleSetPrivate(sender, args);
             case "list":
                 List<String> names = plugin.getCrates().names();
                 if (names.isEmpty()) {
@@ -76,6 +78,7 @@ public class CrateCommand implements CommandExecutor {
         sender.sendMessage("§c/crate unbind §7- odpina fizyczną skrzynię, na którą patrzysz");
         sender.sendMessage("§c/crate sethologram <nazwa> <tekst> §7- ustawia napis hologramu (obsługuje &kody kolorów)");
         sender.sendMessage("§c/crate seteffect <nazwa> <efekt> §7- ustawia efekt otwarcia: " + CrateEffect.listNames());
+        sender.sendMessage("§c/crate setprivate <nazwa> <true|false> §7- wymaga uprawnienia LuckPerms do otwarcia");
         sender.sendMessage("§c/crate list §7- lista skrzyń");
     }
 
@@ -182,6 +185,30 @@ public class CrateCommand implements CommandExecutor {
 
         plugin.getCrates().setEffect(name, effect);
         sender.sendMessage("§aUstawiono efekt otwarcia '" + effect.getDisplayName() + "' dla skrzyni '" + name + "'.");
+        return true;
+    }
+
+    private boolean handleSetPrivate(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("§cUżycie: /crate setprivate <nazwa> <true|false>");
+            return true;
+        }
+        String name = args[1];
+        if (!plugin.getCrates().exists(name)) {
+            sender.sendMessage("§cSkrzynia '" + name + "' nie istnieje.");
+            return true;
+        }
+
+        boolean value = Boolean.parseBoolean(args[2]);
+        plugin.getCrates().setPrivate(name, value);
+        String permission = plugin.getCrates().getPrivatePermission(name);
+
+        if (value) {
+            sender.sendMessage("§aSkrzynia '" + name + "' jest teraz prywatna.");
+            sender.sendMessage("§7Nadaj graczom uprawnienie (np. w LuckPerms): §f" + permission);
+        } else {
+            sender.sendMessage("§aSkrzynia '" + name + "' jest teraz publiczna (bez wymogu uprawnienia).");
+        }
         return true;
     }
 

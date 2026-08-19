@@ -193,6 +193,23 @@ public class CrateManager {
         refreshHolograms(name);
     }
 
+    public boolean isPrivate(String name) {
+        return data.getBoolean(name + ".private", false);
+    }
+
+    public void setPrivate(String name, boolean value) {
+        data.set(name + ".private", value);
+        save();
+        refreshHolograms(name);
+    }
+
+    /**
+     * Uprawnienie LuckPerms wymagane do otwarcia skrzyni oznaczonej jako prywatna.
+     */
+    public String getPrivatePermission(String name) {
+        return "combatlog.crate.private." + name;
+    }
+
     public String getHologramTitle(String name) {
         return data.getString(name + ".hologram-title", "&6&l✦ " + name + " ✦");
     }
@@ -251,6 +268,9 @@ public class CrateManager {
     private List<String> buildHologramLines(String name) {
         List<String> lines = new ArrayList<>();
         lines.add(getHologramTitle(name));
+        if (isPrivate(name)) {
+            lines.add("&c&l🔒 Wymaga uprawnienia");
+        }
         lines.add("&7Kliknij PPM z kluczem, by otworzyć!");
         lines.add("&8Efekt: &f" + getEffect(name).getDisplayName());
         return lines;

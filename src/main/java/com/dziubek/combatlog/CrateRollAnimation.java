@@ -16,7 +16,7 @@ public class CrateRollAnimation {
 
     private static final int TOTAL_STEPS = 24;
 
-    public static void play(CombatLogPlugin plugin, Player player, String crateName, List<ItemStack> rewards) {
+    public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards) {
         Inventory inv = Bukkit.createInventory(new CrateRollGuiHolder(), 9, "§6§lOtwieranie: §f" + crateName);
 
         ItemStack glass = glassPane();
@@ -31,14 +31,14 @@ public class CrateRollAnimation {
     }
 
     private static void step(CombatLogPlugin plugin, Player player, Inventory inv, String crateName,
-                              List<ItemStack> rewards, Random random, int tick) {
+                              List<CrateReward> rewards, Random random, int tick) {
 
         if (!player.isOnline() || !player.getOpenInventory().getTopInventory().equals(inv)) {
             return; // gracz zamknął GUI wcześniej - przerywamy
         }
 
         if (tick < TOTAL_STEPS) {
-            ItemStack randomItem = rewards.get(random.nextInt(rewards.size())).clone();
+            ItemStack randomItem = rewards.get(random.nextInt(rewards.size())).item().clone();
             inv.setItem(4, randomItem);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1.0f + (tick * 0.02f));
 
@@ -48,7 +48,7 @@ public class CrateRollAnimation {
             plugin.getServer().getScheduler().runTaskLater(plugin,
                     () -> step(plugin, player, inv, crateName, rewards, random, next), delay);
         } else {
-            ItemStack won = pickWeighted(rewards, random).clone();
+            ItemStack won = pickWeighted(rewards, random).item().clone();
             inv.setItem(4, won);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 
@@ -62,17 +62,20 @@ public class CrateRollAnimation {
         }
     }
 
-    private static ItemStack pickWeighted(List<ItemStack> rewards, Random random) {
-        int totalWeight = 0;
-        for (ItemStack item : rewards) {
-            totalWeight += Math.max(1, item.getAmount());
+    private static CrateReward pickWeighted(List<CrateReward> rewards, Random random) {
+        double totalWeight = 0;
+        for (CrateReward reward : rewards) {
+            totalWeight += Math.max(0, reward.chance());
         }
-        int roll = random.nextInt(totalWeight) + 1;
-        int cumulative = 0;
-        for (ItemStack item : rewards) {
-            cumulative += Math.max(1, item.getAmount());
-            if (roll <= cumulative) {
-                return item;
+        if (totalWeight <= 0) {
+            return rewards.get(random.nextInt(rewards.size()));
+        }
+        double roll = random.nextDouble() * totalWeight;
+        double cumulative = 0;
+        for (CrateReward reward : rewards) {
+            cumulative += Math.max(0, reward.chance());
+            if (roll < cumulative) {
+                return reward;
             }
         }
         return rewards.get(rewards.size() - 1);

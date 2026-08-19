@@ -37,7 +37,7 @@ public class CrateKeyListener implements Listener {
         event.setCancelled(true);
         Player player = event.getPlayer();
 
-        List<ItemStack> rewards = plugin.getCrates().getRewards(crateName);
+        List<CrateReward> rewards = plugin.getCrates().getRewards(crateName);
         if (rewards.isEmpty()) {
             player.sendMessage("§cTa skrzynia nie ma jeszcze skonfigurowanych nagród.");
             return;

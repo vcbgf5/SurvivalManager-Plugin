@@ -15,17 +15,22 @@ import org.bukkit.persistence.PersistentDataType;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class CrateManager {
 
+    private static final String CHANCE_LORE_PREFIX = "§7Szansa: §f";
+
     private final CombatLogPlugin plugin;
     private final File file;
     private final FileConfiguration data;
     private final NamespacedKey keyTag;
+    private final NamespacedKey chanceTag;
 
     // blockKey ("world,x,y,z") -> nazwa skrzyni, przebudowywana po każdej zmianie
     private final Map<String, String> locationCache = new HashMap<>();
@@ -45,6 +50,7 @@ public class CrateManager {
         }
         this.data = YamlConfiguration.loadConfiguration(file);
         this.keyTag = new NamespacedKey(plugin, "crate_key");
+        this.chanceTag = new NamespacedKey(plugin, "crate_reward_chance");
         rebuildLocationCache();
     }
 
@@ -56,35 +62,216 @@ public class CrateManager {
         return new ArrayList<>(data.getKeys(false));
     }
 
-    public void saveCrate(String name, ItemStack[] contents) {
-        data.set(name + ".rewards", null);
-        int idx = 0;
-        for (ItemStack item : contents) {
-            if (item == null || item.getType() == Material.AIR) {
+    /**
+     * Zapisuje zawartość GUI konfiguracji skrzyni jako listę nagród.
+     * Przedmioty oznaczone na czacie (PPM -> wpisany procent) mają ustaloną szansę ("locked"),
+     * reszta dostaje automatycznie wyliczony udział tak, by suma zawsze wynosiła 100%.
+     * Ilość sztuk w slocie to teraz WYŁĄCZNIE ilość wypłaty, nie ma już wpływu na szansę.
+     */
+    public void saveRewards(String name, ItemStack[] contents) {
+        List<ItemStack> items = new ArrayList<>();
+        List<Double> explicit = new ArrayList<>();
+
+        for (ItemStack raw : contents) {
+            if (raw == null || raw.getType() == Material.AIR) {
                 continue;
             }
-            data.set(name + ".rewards." + idx + ".item", item);
-            idx++;
+            explicit.add(readChanceTag(raw));
+            items.add(stripChanceMeta(raw));
+        }
+
+        double[] chances = computeChances(explicit);
+
+        data.set(name + ".rewards", null);
+        for (int i = 0; i < items.size(); i++) {
+            String base = name + ".rewards." + i;
+            data.set(base + ".item", items.get(i));
+            data.set(base + ".chance", chances[i]);
+            data.set(base + ".chance-locked", explicit.get(i) != null);
+        }
+        save();
+    }
+
+    private double[] computeChances(List<Double> explicit) {
+        int n = explicit.size();
+        double[] result = new double[n];
+        if (n == 0) {
+            return result;
+        }
+
+        double explicitSum = 0;
+        int explicitCount = 0;
+        int autoCount = 0;
+        for (Double v : explicit) {
+            if (v != null) {
+                explicitSum += v;
+                explicitCount++;
+            } else {
+                autoCount++;
+            }
+        }
+
+        if (explicitCount == 0) {
+            Arrays.fill(result, 100.0 / n);
+            return result;
+        }
+
+        if (autoCount > 0) {
+            double remaining = 100.0 - explicitSum;
+            if (remaining <= 0) {
+                // przypisane procenty już wypełniają/przekraczają 100% - przeskaluj je proporcjonalnie,
+                // nieoznaczone przedmioty nie dostają nic (0%)
+                for (int i = 0; i < n; i++) {
+                    Double v = explicit.get(i);
+                    result[i] = v != null ? (v / explicitSum) * 100.0 : 0.0;
+                }
+            } else {
+                double share = remaining / autoCount;
+                for (int i = 0; i < n; i++) {
+                    Double v = explicit.get(i);
+                    result[i] = v != null ? v : share;
+                }
+            }
+            return result;
+        }
+
+        // wszystkie przedmioty mają ręcznie wpisany procent
+        if (Math.abs(explicitSum - 100.0) < 0.01) {
+            for (int i = 0; i < n; i++) {
+                result[i] = explicit.get(i);
+            }
+        } else if (explicitSum > 0) {
+            // suma się nie zgadza - przeskaluj proporcjonalnie tak, by wyszło dokładnie 100%
+            for (int i = 0; i < n; i++) {
+                result[i] = (explicit.get(i) / explicitSum) * 100.0;
+            }
+        } else {
+            Arrays.fill(result, 100.0 / n);
+        }
+        return result;
+    }
+
+    /**
+     * Zwraca nagrody skrzyni. Stare skrzynie (sprzed systemu procentów) są migrowane
+     * przy pierwszym odczycie - dawna waga (ilość sztuk) zostaje przeliczona na procent 1:1,
+     * więc realne szanse wypadnięcia się nie zmieniają.
+     */
+    public List<CrateReward> getRewards(String name) {
+        List<CrateReward> list = new ArrayList<>();
+        ConfigurationSection section = data.getConfigurationSection(name + ".rewards");
+        if (section == null) {
+            return list;
+        }
+
+        List<String> keys = new ArrayList<>(section.getKeys(false));
+        boolean needsMigration = false;
+        for (String key : keys) {
+            if (!data.contains(name + ".rewards." + key + ".chance")) {
+                needsMigration = true;
+                break;
+            }
+        }
+        if (needsMigration) {
+            migrateLegacyChances(name, keys);
+        }
+
+        for (String key : keys) {
+            String base = name + ".rewards." + key;
+            ItemStack item = data.getItemStack(base + ".item");
+            if (item == null) {
+                continue;
+            }
+            double chance = data.getDouble(base + ".chance", 0);
+            boolean locked = data.getBoolean(base + ".chance-locked", false);
+            list.add(new CrateReward(item, chance, locked));
+        }
+        return list;
+    }
+
+    private void migrateLegacyChances(String name, List<String> keys) {
+        Map<String, Integer> amounts = new LinkedHashMap<>();
+        int totalAmount = 0;
+        for (String key : keys) {
+            ItemStack item = data.getItemStack(name + ".rewards." + key + ".item");
+            int amount = item != null ? Math.max(1, item.getAmount()) : 1;
+            amounts.put(key, amount);
+            totalAmount += amount;
+        }
+        for (String key : keys) {
+            double chance = totalAmount > 0 ? (amounts.get(key) * 100.0 / totalAmount) : (100.0 / keys.size());
+            data.set(name + ".rewards." + key + ".chance", chance);
+            data.set(name + ".rewards." + key + ".chance-locked", false);
         }
         save();
     }
 
     /**
-     * Ilość przedmiotu w slocie = zarówno WAGA (szansa) jak i ILOŚĆ jaką gracz dostanie po wylosowaniu.
+     * Oznacza przedmiot ręcznie wpisanym procentem szansy - dopisuje trwały tag (przetrwa
+     * przenoszenie między slotami) i widoczną linijkę lore. Zwraca nową kopię przedmiotu.
      */
-    public List<ItemStack> getRewards(String name) {
-        List<ItemStack> list = new ArrayList<>();
-        ConfigurationSection section = data.getConfigurationSection(name + ".rewards");
-        if (section == null) {
-            return list;
+    public ItemStack applyChanceTag(ItemStack original, double chance) {
+        ItemStack item = original.clone();
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
         }
-        for (String key : section.getKeys(false)) {
-            ItemStack item = data.getItemStack(name + ".rewards." + key + ".item");
-            if (item != null) {
-                list.add(item);
-            }
+        meta.getPersistentDataContainer().set(chanceTag, PersistentDataType.STRING, String.valueOf(chance));
+
+        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        lore.removeIf(line -> line.startsWith(CHANCE_LORE_PREFIX));
+        lore.add(CHANCE_LORE_PREFIX + trimPercent(chance) + "%");
+        meta.setLore(lore);
+
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Usuwa tag/lore procentu - przedmiot wraca do automatycznego wypełniania szansy.
+     */
+    public ItemStack clearChanceTag(ItemStack original) {
+        return stripChanceMeta(original);
+    }
+
+    private Double readChanceTag(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return null;
         }
-        return list;
+        String raw = item.getItemMeta().getPersistentDataContainer().get(chanceTag, PersistentDataType.STRING);
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(raw);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private ItemStack stripChanceMeta(ItemStack original) {
+        if (readChanceTag(original) == null) {
+            return original.clone();
+        }
+        ItemStack item = original.clone();
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+        meta.getPersistentDataContainer().remove(chanceTag);
+        if (meta.hasLore()) {
+            List<String> lore = new ArrayList<>(meta.getLore());
+            lore.removeIf(line -> line.startsWith(CHANCE_LORE_PREFIX));
+            meta.setLore(lore.isEmpty() ? null : lore);
+        }
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private static String trimPercent(double value) {
+        if (value == Math.floor(value)) {
+            return String.valueOf((long) value);
+        }
+        return String.format("%.1f", value);
     }
 
     private void save() {

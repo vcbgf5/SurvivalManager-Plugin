@@ -26,6 +26,7 @@ public class CombatLogPlugin extends JavaPlugin {
     private ShopConfigManager shopConfig;
     private ShopConfigGuiManager shopConfigGui;
     private DecentHologramsHook decentHolograms;
+    private CrateRewardSessionManager crateRewardSessions;
 
     @Override
     public void onEnable() {
@@ -45,18 +46,21 @@ public class CombatLogPlugin extends JavaPlugin {
         shopConfig = new ShopConfigManager();
         shopConfigGui = new ShopConfigGuiManager(this);
         decentHolograms = new DecentHologramsHook(this);
+        crateRewardSessions = new CrateRewardSessionManager();
         crates.refreshAllHolograms();
 
         setupEconomy();
 
         getServer().getPluginManager().registerEvents(new CombatDamageListener(this), this);
         getServer().getPluginManager().registerEvents(new CombatQuitListener(this), this);
+        getServer().getPluginManager().registerEvents(new CombatKickListener(this), this);
         getServer().getPluginManager().registerEvents(new FirstJoinSpawnListener(this), this);
         getServer().getPluginManager().registerEvents(new HomeGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new DailyGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateKeyListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateBlockListener(this), this);
+        getServer().getPluginManager().registerEvents(new CrateRewardChatListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopConfigGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopChatListener(this), this);
@@ -221,5 +225,9 @@ public class CombatLogPlugin extends JavaPlugin {
 
     public DecentHologramsHook getDecentHolograms() {
         return decentHolograms;
+    }
+
+    public CrateRewardSessionManager getCrateRewardSessions() {
+        return crateRewardSessions;
     }
 }

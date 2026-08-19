@@ -226,14 +226,19 @@ public class CrateCommand implements CommandExecutor {
         String name = args[1];
 
         Inventory inv = Bukkit.createInventory(new CrateConfigGuiHolder(name), 27, "§6§lKonfiguracja: §f" + name);
-        List<ItemStack> existing = plugin.getCrates().getRewards(name);
+        List<CrateReward> existing = plugin.getCrates().getRewards(name);
         for (int i = 0; i < existing.size() && i < 27; i++) {
-            inv.setItem(i, existing.get(i));
+            CrateReward reward = existing.get(i);
+            ItemStack display = reward.locked()
+                    ? plugin.getCrates().applyChanceTag(reward.item(), reward.chance())
+                    : reward.item();
+            inv.setItem(i, display);
         }
 
         player.openInventory(inv);
         player.sendMessage("§aUmieść przedmioty, które mają wypadać z tej skrzyni.");
-        player.sendMessage("§7Ilość sztuk = szansa (waga) ORAZ ilość jaką dostanie gracz. Zamknij ekwipunek, aby zapisać.");
+        player.sendMessage("§7PPM na przedmiot §f= wpisz na czacie procent szansy. Nieoznaczone przedmioty dostają automatycznie resztę do 100%.");
+        player.sendMessage("§7Ilość sztuk w slocie to teraz TYLKO ilość wypłaty (nie wpływa już na szansę). Zamknij ekwipunek, aby zapisać.");
         return true;
     }
 

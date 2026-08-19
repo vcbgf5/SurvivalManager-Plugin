@@ -89,7 +89,7 @@ public class CombatLogPlugin extends JavaPlugin {
         getCommand("top").setExecutor(new TopCommand(this));
 
         getServer().getScheduler().runTaskTimer(this, new CombatActionBarTask(this), 20L, 20L);
-        getServer().getScheduler().runTaskTimer(this, new CrateIdleEffectTask(this), 100L, 80L);
+        new CrateIdleEffectTask(this).runTaskTimer(this, 100L, 80L);
 
         boolean worldGuardFound = getServer().getPluginManager().getPlugin("WorldGuard") != null;
         if (worldGuardFound) {

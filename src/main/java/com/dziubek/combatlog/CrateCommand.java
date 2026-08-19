@@ -1,6 +1,8 @@
 package com.dziubek.combatlog;
 
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -23,7 +25,7 @@ public class CrateCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§cUżycie: /crate create <nazwa> §7| §c/crate givekey <nazwa> <gracz> [ilość] §7| §c/crate list");
+            sendHelp(sender);
             return true;
         }
 
@@ -40,14 +42,147 @@ public class CrateCommand implements CommandExecutor {
                 return handleCreate(sender, args);
             case "givekey":
                 return handleGiveKey(sender, args);
+            case "bind":
+                return handleBind(sender, args);
+            case "unbind":
+                return handleUnbind(sender);
+            case "sethologram":
+                return handleSetHologram(sender, args);
+            case "seteffect":
+                return handleSetEffect(sender, args);
             case "list":
                 List<String> names = plugin.getCrates().names();
-                sender.sendMessage("§eSkrzynie: §f" + (names.isEmpty() ? "brak" : String.join(", ", names)));
+                if (names.isEmpty()) {
+                    sender.sendMessage("§eSkrzynie: §fbrak");
+                    return true;
+                }
+                sender.sendMessage("§eSkrzynie:");
+                for (String name : names) {
+                    sender.sendMessage("§7 - §f" + name + " §7(" + plugin.getCrates().countLocations(name) + " postawionych, efekt: "
+                            + plugin.getCrates().getEffect(name).getDisplayName() + ")");
+                }
                 return true;
             default:
-                sender.sendMessage("§cNieznana podkomenda. Użyj: create, givekey, list.");
+                sendHelp(sender);
                 return true;
         }
+    }
+
+    private void sendHelp(CommandSender sender) {
+        sender.sendMessage("§6§l--- /crate ---");
+        sender.sendMessage("§c/crate create <nazwa> §7- konfiguruje nagrody skrzyni (GUI)");
+        sender.sendMessage("§c/crate givekey <nazwa> <gracz> [ilość] §7- daje klucz graczowi");
+        sender.sendMessage("§c/crate bind <nazwa> §7- przypina blok, na który patrzysz, jako fizyczną skrzynię");
+        sender.sendMessage("§c/crate unbind §7- odpina fizyczną skrzynię, na którą patrzysz");
+        sender.sendMessage("§c/crate sethologram <nazwa> <tekst> §7- ustawia napis hologramu (obsługuje &kody kolorów)");
+        sender.sendMessage("§c/crate seteffect <nazwa> <efekt> §7- ustawia efekt otwarcia: " + CrateEffect.listNames());
+        sender.sendMessage("§c/crate list §7- lista skrzyń");
+    }
+
+    private boolean handleBind(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("Tej komendy może użyć tylko gracz.");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage("§cUżycie: /crate bind <nazwa> §7(patrząc na blok skrzyni)");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        String name = args[1];
+
+        if (!plugin.getCrates().exists(name)) {
+            sender.sendMessage("§cSkrzynia '" + name + "' nie istnieje. Najpierw /crate create " + name);
+            return true;
+        }
+
+        Block target = player.getTargetBlockExact(6, FluidCollisionMode.NEVER);
+        if (target == null || target.getType().isAir()) {
+            player.sendMessage("§cPatrz na blok, który ma być fizyczną skrzynią (max. 6 bloków).");
+            return true;
+        }
+
+        if (plugin.getCrates().getCrateNameAt(target.getLocation()) != null) {
+            player.sendMessage("§cTen blok jest już przypięty do innej skrzyni.");
+            return true;
+        }
+
+        if (!plugin.getDecentHolograms().isAvailable()) {
+            player.sendMessage("§eUwaga: DecentHolograms nie jest zainstalowany - skrzynia zadziała, ale bez hologramu.");
+        }
+
+        plugin.getCrates().bindLocation(name, target.getLocation());
+        player.sendMessage("§aPrzypięto blok jako skrzynię '" + name + "'. Osobny hologram został tam postawiony.");
+        return true;
+    }
+
+    private boolean handleUnbind(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("Tej komendy może użyć tylko gracz.");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        Block target = player.getTargetBlockExact(6, FluidCollisionMode.NEVER);
+        if (target == null || target.getType().isAir()) {
+            player.sendMessage("§cPatrz na blok fizycznej skrzyni, którą chcesz odpiąć.");
+            return true;
+        }
+
+        String removed = plugin.getCrates().unbindLocation(target.getLocation());
+        if (removed == null) {
+            player.sendMessage("§cTen blok nie jest przypięty do żadnej skrzyni.");
+        } else {
+            player.sendMessage("§aOdpięto blok od skrzyni '" + removed + "' i usunięto jej hologram.");
+        }
+        return true;
+    }
+
+    private boolean handleSetHologram(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("§cUżycie: /crate sethologram <nazwa> <tekst>");
+            return true;
+        }
+        String name = args[1];
+        if (!plugin.getCrates().exists(name)) {
+            sender.sendMessage("§cSkrzynia '" + name + "' nie istnieje.");
+            return true;
+        }
+
+        StringBuilder text = new StringBuilder();
+        for (int i = 2; i < args.length; i++) {
+            if (i > 2) {
+                text.append(' ');
+            }
+            text.append(args[i]);
+        }
+
+        plugin.getCrates().setHologramTitle(name, text.toString());
+        sender.sendMessage("§aZaktualizowano napis hologramu skrzyni '" + name + "' na wszystkich postawionych lokalizacjach.");
+        return true;
+    }
+
+    private boolean handleSetEffect(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage("§cUżycie: /crate seteffect <nazwa> <efekt> §7- dostępne: " + CrateEffect.listNames());
+            return true;
+        }
+        String name = args[1];
+        if (!plugin.getCrates().exists(name)) {
+            sender.sendMessage("§cSkrzynia '" + name + "' nie istnieje.");
+            return true;
+        }
+
+        CrateEffect effect = CrateEffect.fromString(args[2]);
+        if (effect == null) {
+            sender.sendMessage("§cNieznany efekt. Dostępne: " + CrateEffect.listNames());
+            return true;
+        }
+
+        plugin.getCrates().setEffect(name, effect);
+        sender.sendMessage("§aUstawiono efekt otwarcia '" + effect.getDisplayName() + "' dla skrzyni '" + name + "'.");
+        return true;
     }
 
     private boolean handleCreate(CommandSender sender, String[] args) {

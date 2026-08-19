@@ -23,6 +23,11 @@ public class CrateKeyListener implements Listener {
             return;
         }
 
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
+                && plugin.getCrates().getCrateNameAt(event.getClickedBlock().getLocation()) != null) {
+            return; // fizyczną, przypiętą skrzynię obsługuje wyłącznie CrateBlockListener
+        }
+
         ItemStack item = event.getItem();
         String crateName = plugin.getCrates().getKeyCrateName(item);
         if (crateName == null) {

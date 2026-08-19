@@ -45,6 +45,7 @@ public class CombatLogPlugin extends JavaPlugin {
         shopConfig = new ShopConfigManager();
         shopConfigGui = new ShopConfigGuiManager(this);
         decentHolograms = new DecentHologramsHook(this);
+        crates.refreshAllHolograms();
 
         setupEconomy();
 
@@ -55,6 +56,7 @@ public class CombatLogPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new DailyGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new CrateKeyListener(this), this);
+        getServer().getPluginManager().registerEvents(new CrateBlockListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopConfigGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopChatListener(this), this);

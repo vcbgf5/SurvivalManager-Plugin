@@ -41,8 +41,8 @@ commands:
     description: Odbiera codzienna nagrode lub konfiguruje dzien (admin) - /daily setday <1-7>
     usage: /daily lub /daily setday <1-7>
   crate:
-    description: Skrzynie - /crate create <nazwa>, /crate givekey <nazwa> <gracz> [ilosc], /crate list
-    usage: /crate create|givekey|list
+    description: Skrzynie - /crate create|givekey|bind|unbind|sethologram|seteffect|list
+    usage: /crate create|givekey|bind|unbind|sethologram|seteffect|list
   fixmovement:
     description: Resetuje predkosc chodzenia/latania gracza (naprawia zablokowany ruch po auth-pluginach)
     usage: /fixmovement <gracz>

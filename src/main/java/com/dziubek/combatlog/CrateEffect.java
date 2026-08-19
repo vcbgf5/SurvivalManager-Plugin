@@ -73,17 +73,27 @@ public enum CrateEffect {
     }
 
     /**
-     * Subtelny, cichy wariant efektu odtwarzany co jakiś czas, gdy nikt akurat nie otwiera skrzyni -
-     * w przeciwieństwie do play() nie ma dźwięku ani dużej ilości cząsteczek, żeby nie irytował graczy.
+     * Cichy, ciągle wirujący pierścień cząsteczek DOOKOŁA bloku (nie nad nim) - widoczny cały czas,
+     * gdy nikt akurat nie otwiera skrzyni. Kąt liczony z czasu systemowego, więc animacja jest płynna
+     * niezależnie jak często wywołujemy tę metodę, i wszystkie skrzynie kręcą się zsynchronizowanie.
      */
     public void playIdle(Location blockLocation) {
-        Location center = blockLocation.clone().add(0.5, 1.0, 0.5);
+        Location center = blockLocation.clone().add(0.5, 0.6, 0.5);
         World world = center.getWorld();
         if (world == null) {
             return;
         }
         Particle idleParticle = (this == SPIRALA) ? Particle.END_ROD : particle;
-        world.spawnParticle(idleParticle, center, 3, 0.25, 0.3, 0.25, 0.01);
+
+        double baseAngle = (System.currentTimeMillis() % 4000) / 4000.0 * Math.PI * 2;
+        int points = 3;
+        double radius = 0.8;
+        for (int i = 0; i < points; i++) {
+            double angle = baseAngle + (Math.PI * 2 / points) * i;
+            double x = center.getX() + radius * Math.cos(angle);
+            double z = center.getZ() + radius * Math.sin(angle);
+            world.spawnParticle(idleParticle, x, center.getY(), z, 1, 0, 0, 0, 0);
+        }
     }
 
     private void playSpiral(CombatLogPlugin plugin, Location center) {

@@ -1,11 +1,15 @@
 package com.dziubek.combatlog;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
@@ -15,6 +19,10 @@ import java.util.Random;
 public class CrateRollAnimation {
 
     private static final int TOTAL_STEPS = 24;
+
+    // progi rzadkosci wg CrateReward.chance() (%) - im nizszy procent, tym rzadszy przedmiot
+    private static final double LEGENDARY_THRESHOLD = 5.0;
+    private static final double RARE_THRESHOLD = 15.0;
 
     public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards) {
         Inventory inv = Bukkit.createInventory(new CrateRollGuiHolder(), 9, "§6§lOtwieranie: §f" + crateName);
@@ -48,7 +56,8 @@ public class CrateRollAnimation {
             plugin.getServer().getScheduler().runTaskLater(plugin,
                     () -> step(plugin, player, inv, crateName, rewards, random, next), delay);
         } else {
-            ItemStack won = pickWeighted(rewards, random).item().clone();
+            CrateReward wonReward = pickWeighted(rewards, random);
+            ItemStack won = wonReward.item().clone();
             inv.setItem(4, won);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 
@@ -61,7 +70,46 @@ public class CrateRollAnimation {
 
             String name = itemDisplayName(won);
             player.sendMessage("§aWygrałeś: §f" + name + " §7(x" + won.getAmount() + ") §7ze skrzyni '" + crateName + "'!");
+
+            announceRarity(plugin, player, crateName, name, wonReward.chance());
         }
+    }
+
+    /**
+     * Rzadsze przedmioty (niższa szansa w CrateReward.chance()) dostają lepszą oprawę:
+     * LEGENDARY (&lt;5%) - fajerwerk, złoty tytuł, ogłoszenie na czacie całego serwera.
+     * RZADKI (&lt;15%) - mniejszy tytuł tylko dla gracza, bez ogłoszenia.
+     * Reszta - bez zmian (już obsłużone wyżej: dźwięk levelup + wiadomość na czacie).
+     */
+    private static void announceRarity(CombatLogPlugin plugin, Player player, String crateName, String itemName, double chance) {
+        if (chance < LEGENDARY_THRESHOLD) {
+            TitleUtil.show(player, "§6§l✦ LEGENDARY ✦", "§f" + itemName);
+            player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.4f);
+            spawnFirework(plugin, player);
+
+            String broadcast = "§6§l✦ §e" + player.getName() + " §6wylosował(a) RZADKI przedmiot §f" + itemName
+                    + " §6ze skrzyni '" + crateName + "'! §6§l✦";
+            Bukkit.getServer().broadcastMessage(broadcast);
+        } else if (chance < RARE_THRESHOLD) {
+            TitleUtil.show(player, "§b§lRZADKI!", "§f" + itemName);
+            player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.0f);
+        }
+    }
+
+    private static void spawnFirework(CombatLogPlugin plugin, Player player) {
+        Firework firework = player.getWorld().spawn(player.getLocation(), Firework.class);
+        FireworkMeta meta = firework.getFireworkMeta();
+        meta.addEffect(FireworkEffect.builder()
+                .withColor(Color.YELLOW, Color.ORANGE)
+                .withFade(Color.RED)
+                .with(FireworkEffect.Type.BURST)
+                .trail(true)
+                .flicker(true)
+                .build());
+        meta.setPower(0);
+        firework.setFireworkMeta(meta);
+
+        plugin.getServer().getScheduler().runTaskLater(plugin, firework::detonate, 2L);
     }
 
     private static CrateReward pickWeighted(List<CrateReward> rewards, Random random) {

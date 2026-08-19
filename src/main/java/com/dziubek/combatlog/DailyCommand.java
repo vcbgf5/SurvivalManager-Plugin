@@ -91,6 +91,10 @@ public class DailyCommand implements CommandExecutor {
         plugin.getStats().recordDailyClaim(player.getUniqueId(), player.getName());
         plugin.getDaily().getEffect().play(plugin, player.getLocation());
         player.sendMessage("§aOdebrano nagrodę za dzień §f" + cycleDay + "§a/7 z rzędu!");
+
+        if (cycleDay == 7) {
+            TitleUtil.show(player, "§a§l7/7!", "§fStreak ukończony - gratulacje!");
+        }
         return true;
     }
 }

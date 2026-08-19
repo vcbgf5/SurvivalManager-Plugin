@@ -1,5 +1,6 @@
 package com.dziubek.combatlog;
 
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
@@ -31,8 +32,22 @@ public class CombatDamageListener implements Listener {
         }
 
         long duration = plugin.getCombatDurationSeconds();
-        plugin.getCombatManager().tag(victim.getUniqueId(), duration);
-        plugin.getCombatManager().tag(attacker.getUniqueId(), duration);
+        alertIfFreshTag(victim, duration);
+        alertIfFreshTag(attacker, duration);
+    }
+
+    /**
+     * Tytuł+dźwięk tylko przy PIERWSZYM otagowaniu danej walki - kolejne trafienia w trakcie
+     * trwającego już tagu tylko odświeżają czas, bez powtarzania alertu na ekranie.
+     */
+    private void alertIfFreshTag(Player player, long duration) {
+        boolean wasAlreadyTagged = plugin.getCombatManager().isTagged(player.getUniqueId());
+        plugin.getCombatManager().tag(player.getUniqueId(), duration);
+
+        if (!wasAlreadyTagged) {
+            TitleUtil.show(player, "§c§l⚔ WALKA!", "§7Nie wychodź z gry przez " + duration + "s!");
+            player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.3f, 1.8f);
+        }
     }
 
     private Player resolvePlayerAttacker(EntityDamageByEntityEvent event) {

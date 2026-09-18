@@ -65,26 +65,34 @@ public class CrateItemDisplayManager {
     }
 
     /**
-     * Usuwa WSZYSTKIE oznaczone naszym tagiem encje we wszystkich załadowanych światach,
-     * niezależnie od pozycji - wywoływane raz przy starcie pluginu, zanim postawimy świeży
-     * zestaw displayów. Łapie "osierocone" encje sprzed zmiany wysokości/kolejnych /reload,
-     * których nie znalazłoby przeszukiwanie samej okolicy jednego bloku - to właśnie one
-     * zostają wtedy w świecie na stałe: bez skalowania i animacji (nikt już ich nie ożywia),
-     * więc wyglądają jak duży, nieruchomy przedmiot obok normalnie kręcącego się displaya.
+     * Usuwa TYLKO "osierocone" encje - oznaczone naszym tagiem, ale nieznane tej instancji
+     * managera (np. zostawione przez poprzedni /reload). Displaye, którymi ten manager już
+     * żywo zarządza - w tym te w trakcie animacji wygranej - zostają NIETKNIĘTE: to nie jest
+     * "zniszcz wszystko i postaw od nowa", tylko wybiórcze sprzątanie śmieci.
      */
     public void purgeOrphans() {
         int removed = 0;
         for (World world : plugin.getServer().getWorlds()) {
             for (Entity entity : world.getEntitiesByClass(ItemDisplay.class)) {
-                if (entity.getScoreboardTags().contains(TAG)) {
-                    entity.remove();
-                    removed++;
+                if (!entity.getScoreboardTags().contains(TAG) || isTracked(entity)) {
+                    continue;
                 }
+                entity.remove();
+                removed++;
             }
         }
         if (removed > 0) {
             plugin.getLogger().info("Usunięto " + removed + " osieroconych pływających przedmiotów nad skrzyniami sprzed restartu.");
         }
+    }
+
+    private boolean isTracked(Entity entity) {
+        for (Entry entry : entries.values()) {
+            if (entry.display.equals(entity)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -134,15 +142,23 @@ public class CrateItemDisplayManager {
     }
 
     /**
-     * Tworzy pływający display nad podanym blokiem skrzyni. Usuwa najpierw ewentualne
-     * "osierocone" encje sprzed restartu serwera (te trzymane w tej mapie giną razem z JVM,
-     * ale same encje w świecie zostają, więc trzeba je posprzątać, zanim postawimy nową).
+     * Tworzy pływający display nad podanym blokiem skrzyni. Jeśli w tym miejscu już mamy
+     * żywy, śledzony display (np. wywołanie /crate purgedisplays, gdy skrzynia jest właśnie
+     * otwierana i trwa animacja wygranej) - nic nie robi, żeby go nie przerywać duplikatem.
+     * W przeciwnym razie najpierw sprząta ewentualne "osierocone" encje sprzed restartu
+     * serwera (te trzymane w tej mapie giną razem z JVM, ale same encje w świecie zostają).
      */
     public void spawnDisplay(String crateName, Location blockLocation) {
         World world = blockLocation.getWorld();
         if (world == null) {
             return;
         }
+
+        Entry existing = entries.get(blockKey(blockLocation));
+        if (existing != null && existing.display.isValid()) {
+            return;
+        }
+
         removeStrayEntities(blockLocation);
 
         Location spawnAt = blockLocation.clone().add(0.5, heightAboveBlock, 0.5);

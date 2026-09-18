@@ -61,6 +61,9 @@ commands:
   top:
     description: Ranking graczy - /top <crates|daily|money> [ilosc]
     usage: /top [crates|daily|money] [ilosc]
+  bpvp:
+    description: Box PvP - areny, generatory blokow, rundy - /bpvp create|setlobby|addspawn|setkit|start|stop|join|leave|generator|list
+    usage: /bpvp create|setlobby|addspawn|clearspawns|setkit|start|stop|join|leave|generator|list
 
 softdepend: [WorldGuard, Vault, DecentHolograms]
 
@@ -85,4 +88,7 @@ permissions:
     default: op
   combatlog.stats.admin:
     description: Pozwala sprawdzac statystyki innych graczy
+    default: op
+  combatlog.bpvp.admin:
+    description: Pozwala zarzadzac arenami i generatorami Box PvP
     default: op

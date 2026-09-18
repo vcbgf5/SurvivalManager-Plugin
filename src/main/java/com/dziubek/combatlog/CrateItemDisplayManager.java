@@ -27,12 +27,13 @@ import java.util.Map;
 public class CrateItemDisplayManager {
 
     private static final String TAG = "sm_crate_item_display";
-    private static final double HEIGHT_ABOVE_BLOCK = 2.0;
+    private static final double DEFAULT_HEIGHT_ABOVE_BLOCK = 3.5;
     private static final long IDLE_PERIOD_MS = 2200;
     private static final long HIGHLIGHT_PERIOD_MS = 450;
     private static final long HIGHLIGHT_DURATION_MS = 3000;
     private static final long CYCLE_INTERVAL_TICKS = 20L;
     private static final long SPIN_INTERVAL_TICKS = 2L;
+    private static final long RECONCILE_INTERVAL_TICKS = 100L;
 
     // "spadanie" wygranej z gory na miejsce spoczynku, zwalniajac pod koniec (ease-out)
     private static final double DROP_START_OFFSET = 4.0;
@@ -41,15 +42,55 @@ public class CrateItemDisplayManager {
     private final CombatLogPlugin plugin;
     private final NamespacedKey ownerTag;
     private final Map<String, Entry> entries = new HashMap<>();
+    private double heightAboveBlock;
 
     public CrateItemDisplayManager(CombatLogPlugin plugin) {
         this.plugin = plugin;
         this.ownerTag = new NamespacedKey(plugin, "crate_item_display_owner");
+        this.heightAboveBlock = plugin.getConfig().getDouble("crate-item-display.height", DEFAULT_HEIGHT_ABOVE_BLOCK);
     }
 
     public void start() {
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::spin, 0L, SPIN_INTERVAL_TICKS);
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::cycle, 0L, CYCLE_INTERVAL_TICKS);
+        plugin.getServer().getScheduler().runTaskTimer(plugin, this::reconcile, RECONCILE_INTERVAL_TICKS, RECONCILE_INTERVAL_TICKS);
+    }
+
+    public double getHeight() {
+        return heightAboveBlock;
+    }
+
+    /**
+     * Zmienia wysokość na żywo, bez restartu - zapisuje w config.yml i od razu przestawia
+     * wszystkie już postawione displaye na nową wysokość (teleportacja, bez ich niszczenia).
+     */
+    public void setHeight(double newHeight) {
+        this.heightAboveBlock = newHeight;
+        plugin.getConfig().set("crate-item-display.height", newHeight);
+        plugin.saveConfig();
+
+        for (Entry entry : entries.values()) {
+            if (!entry.display.isValid()) {
+                continue;
+            }
+            Location newAnchor = entry.blockLocation.clone().add(0.5, heightAboveBlock, 0.5);
+            entry.display.teleport(newAnchor);
+        }
+    }
+
+    /**
+     * Co RECONCILE_INTERVAL_TICKS sprawdza, czy każda przypięta fizyczna skrzynia ma żywy
+     * pływający display - jeśli brakuje (np. coś go usunęło), stawia nowy.
+     */
+    private void reconcile() {
+        for (String name : plugin.getCrates().names()) {
+            for (Location location : plugin.getCrates().getAllLocations(name)) {
+                Entry entry = entries.get(blockKey(location));
+                if (entry == null || !entry.display.isValid()) {
+                    spawnDisplay(name, location);
+                }
+            }
+        }
     }
 
     /**
@@ -77,7 +118,7 @@ public class CrateItemDisplayManager {
         }
         removeStrayEntities(blockLocation);
 
-        Location spawnAt = blockLocation.clone().add(0.5, HEIGHT_ABOVE_BLOCK, 0.5);
+        Location spawnAt = blockLocation.clone().add(0.5, heightAboveBlock, 0.5);
         List<CrateReward> rewards = plugin.getCrates().getRewards(crateName);
         if (rewards.isEmpty()) {
             plugin.getLogger().warning("Skrzynia '" + crateName + "' nie ma jeszcze skonfigurowanych nagród - "
@@ -94,7 +135,7 @@ public class CrateItemDisplayManager {
             e.setItemStack(rewards.isEmpty() ? placeholderItem() : rewards.get(0).item().clone());
         });
 
-        entries.put(blockKey(blockLocation), new Entry(display, crateName));
+        entries.put(blockKey(blockLocation), new Entry(display, crateName, blockLocation.clone()));
         plugin.getLogger().info("Postawiono pływający przedmiot nad skrzynią '" + crateName + "' w "
                 + world.getName() + " (" + blockLocation.getBlockX() + "," + blockLocation.getBlockY()
                 + "," + blockLocation.getBlockZ() + ").");
@@ -192,13 +233,17 @@ public class CrateItemDisplayManager {
         }
     }
 
+    /**
+     * Szuka w kolumnie nad blokiem (nie tylko na aktualnej wysokości) - żeby złapać też
+     * displaye postawione zanim wysokość została zmieniona komendą /crate setdisplayheight.
+     */
     private void removeStrayEntities(Location blockLocation) {
         World world = blockLocation.getWorld();
         if (world == null) {
             return;
         }
-        Location center = blockLocation.clone().add(0.5, HEIGHT_ABOVE_BLOCK, 0.5);
-        for (Entity entity : world.getNearbyEntities(center, 0.6, 0.6, 0.6)) {
+        Location center = blockLocation.clone().add(0.5, 3.5, 0.5);
+        for (Entity entity : world.getNearbyEntities(center, 0.6, 4.0, 0.6)) {
             if (entity instanceof ItemDisplay && entity.getScoreboardTags().contains(TAG)) {
                 entity.remove();
             }
@@ -212,13 +257,15 @@ public class CrateItemDisplayManager {
     private static final class Entry {
         final ItemDisplay display;
         final String crateName;
+        final Location blockLocation;
         int rewardIndex = 0;
         long highlightUntil = 0L;
         long dropStartAt = 0L;
 
-        Entry(ItemDisplay display, String crateName) {
+        Entry(ItemDisplay display, String crateName, Location blockLocation) {
             this.display = display;
             this.crateName = crateName;
+            this.blockLocation = blockLocation;
         }
     }
 }

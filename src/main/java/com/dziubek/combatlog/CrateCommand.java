@@ -57,6 +57,8 @@ public class CrateCommand implements CommandExecutor {
                 return handleSetFreeCooldown(sender, args);
             case "setidleeffect":
                 return handleSetIdleEffect(sender, args);
+            case "setdisplayheight":
+                return handleSetDisplayHeight(sender, args);
             case "preview":
                 return handlePreview(sender, args);
             case "list":
@@ -88,6 +90,7 @@ public class CrateCommand implements CommandExecutor {
         sender.sendMessage("§c/crate setprivate <nazwa> <true|false> §7- wymaga uprawnienia LuckPerms do otwarcia");
         sender.sendMessage("§c/crate setfreecooldown <nazwa> <godziny> §7- darmowe otwarcie bez klucza co X godzin (0 = wyłącz)");
         sender.sendMessage("§c/crate setidleeffect <nazwa> <efekt|none> §7- cichy efekt widoczny gdy nikt nie otwiera skrzyni");
+        sender.sendMessage("§c/crate setdisplayheight <wysokość> §7- ile bloków nad skrzynią unosi się pływający przedmiot (na żywo, wszystkie skrzynie)");
         sender.sendMessage("§c/crate preview <nazwa> §7- podgląd zawartości skrzyni z procentami (dla każdego)");
         sender.sendMessage("§c/crate list §7- lista skrzyń");
     }
@@ -280,6 +283,31 @@ public class CrateCommand implements CommandExecutor {
         plugin.getCrates().setIdleEffect(name, effect);
         sender.sendMessage("§aUstawiono efekt idle '" + effect.getDisplayName()
                 + "' dla skrzyni '" + name + "' (widoczny, gdy nikt jej nie otwiera).");
+        return true;
+    }
+
+    private boolean handleSetDisplayHeight(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage("§cUżycie: /crate setdisplayheight <wysokość> §7(np. 3.5, obecnie: "
+                    + plugin.getCrateItemDisplays().getHeight() + ")");
+            return true;
+        }
+
+        double height;
+        try {
+            height = Double.parseDouble(args[1]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cWysokość musi być liczbą (np. 3.5).");
+            return true;
+        }
+        if (height < 0 || height > 10) {
+            sender.sendMessage("§cWysokość musi być między 0 a 10.");
+            return true;
+        }
+
+        plugin.getCrateItemDisplays().setHeight(height);
+        sender.sendMessage("§aUstawiono wysokość pływających przedmiotów na §f" + height
+                + " §abloków nad skrzynią - wszystkie postawione skrzynie zaktualizowane od razu, bez restartu.");
         return true;
     }
 

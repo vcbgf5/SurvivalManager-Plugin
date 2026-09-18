@@ -36,6 +36,11 @@ public class CrateRollAnimation {
     private static final double LEGENDARY_THRESHOLD = 5.0;
     private static final double RARE_THRESHOLD = 15.0;
 
+    // ile trzyma sie widok wygranej w GUI zanim samo sie zamknie (wariant z animacja)
+    private static final int REVEAL_HOLD_TICKS = 20;
+    // jak dlugo kamera jest "przytrzymana" na plywajacym przedmiocie nad skrzynia
+    private static final int CUTSCENE_TICKS = 30;
+
     public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards,
                              Location crateBlockLocation) {
         Inventory inv = Bukkit.createInventory(new CrateRollGuiHolder(), GUI_SIZE, "§6§lOtwieranie: §f" + crateName);
@@ -63,6 +68,7 @@ public class CrateRollAnimation {
         }
         CrateReward wonReward = pickWeighted(rewards, new Random());
         applyReward(plugin, player, crateName, wonReward, crateBlockLocation);
+        playCutscene(plugin, player, crateBlockLocation);
     }
 
     private static void step(CombatLogPlugin plugin, Player player, Inventory inv, String crateName,
@@ -103,7 +109,54 @@ public class CrateRollAnimation {
             inv.setItem(RESULT_SLOT, won);
 
             applyReward(plugin, player, crateName, wonReward, crateBlockLocation);
+
+            // po chwili pokazywania wyniku w GUI, okno samo sie zamyka i startuje "cutscenka"
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline() && player.getOpenInventory().getTopInventory().equals(inv)) {
+                    player.closeInventory();
+                }
+                playCutscene(plugin, player, crateBlockLocation);
+            }, REVEAL_HOLD_TICKS);
         }
+    }
+
+    /**
+     * "Zamraża" gracza w miejscu (jak przy tpa) i przez chwilę przymusowo obraca mu kamerę
+     * w stronę pływającego przedmiotu nad skrzynią, na koniec odpalając efekt wybuchu totemu.
+     */
+    private static void playCutscene(CombatLogPlugin plugin, Player player, Location crateBlockLocation) {
+        if (crateBlockLocation == null || !player.isOnline()) {
+            return;
+        }
+        Location anchor = player.getLocation();
+        Location target = crateBlockLocation.clone().add(0.5, plugin.getCrateItemDisplays().getHeight(), 0.5);
+
+        forceLookAt(plugin, player, anchor, target, CUTSCENE_TICKS);
+    }
+
+    private static void forceLookAt(CombatLogPlugin plugin, Player player, Location anchor, Location target, int ticksLeft) {
+        if (!player.isOnline()) {
+            return;
+        }
+        if (ticksLeft <= 0) {
+            player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, anchor.clone().add(0, 1, 0), 60, 0.5, 1.0, 0.5, 0.5);
+            player.playSound(anchor, Sound.ITEM_TOTEM_USE, 1.0f, 1.0f);
+            return;
+        }
+
+        Location eye = anchor.clone().add(0, player.getEyeHeight(), 0);
+        double dx = target.getX() - eye.getX();
+        double dy = target.getY() - eye.getY();
+        double dz = target.getZ() - eye.getZ();
+        double distanceXZ = Math.sqrt(dx * dx + dz * dz);
+
+        Location forced = anchor.clone();
+        forced.setYaw((float) Math.toDegrees(Math.atan2(-dx, dz)));
+        forced.setPitch((float) Math.toDegrees(-Math.atan2(dy, distanceXZ)));
+        player.teleport(forced);
+
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> forceLookAt(plugin, player, anchor, target, ticksLeft - 1), 1L);
     }
 
     /**

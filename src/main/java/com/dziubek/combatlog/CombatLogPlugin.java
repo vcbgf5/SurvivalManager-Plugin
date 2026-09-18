@@ -31,8 +31,6 @@ public class CombatLogPlugin extends JavaPlugin {
     private CratePreviewGuiManager cratePreviewGui;
     private CrateItemDisplayManager crateItemDisplays;
     private CrateOpenChoiceGuiManager crateOpenChoiceGui;
-    private ArenaManager arenas;
-    private GeneratorManager generators;
 
     @Override
     public void onEnable() {
@@ -57,12 +55,9 @@ public class CombatLogPlugin extends JavaPlugin {
         cratePreviewGui = new CratePreviewGuiManager(this);
         crateItemDisplays = new CrateItemDisplayManager(this);
         crateOpenChoiceGui = new CrateOpenChoiceGuiManager(this);
-        arenas = new ArenaManager(this);
-        generators = new GeneratorManager(this);
         crates.refreshAllHolograms();
         crates.initializeItemDisplays();
         crateItemDisplays.start();
-        generators.start();
 
         setupEconomy();
 
@@ -78,7 +73,6 @@ public class CombatLogPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ShopGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopConfigGuiListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopChatListener(this), this);
-        getServer().getPluginManager().registerEvents(new ArenaListener(this), this);
 
         getCommand("testcombat").setExecutor(new TestCombatCommand(this));
         getCommand("testcombatoff").setExecutor(new TestCombatOffCommand(this));
@@ -99,8 +93,6 @@ public class CombatLogPlugin extends JavaPlugin {
         getCommand("info-serwer").setExecutor(new InfoServerCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
         getCommand("top").setExecutor(new TopCommand(this));
-        getCommand("bpvp").setExecutor(new ArenaCommand(this));
-        getCommand("bpvp").setTabCompleter(new ArenaTabCompleter(this));
 
         getServer().getScheduler().runTaskTimer(this, new CombatActionBarTask(this), 20L, 20L);
         new CrateIdleEffectTask(this).runTaskTimer(this, 20L, 3L);
@@ -273,13 +265,5 @@ public class CombatLogPlugin extends JavaPlugin {
 
     public CrateOpenChoiceGuiManager getCrateOpenChoiceGui() {
         return crateOpenChoiceGui;
-    }
-
-    public ArenaManager getArenas() {
-        return arenas;
-    }
-
-    public GeneratorManager getGenerators() {
-        return generators;
     }
 }

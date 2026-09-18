@@ -13,6 +13,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -152,16 +153,7 @@ public class CrateRollAnimation {
             return;
         }
 
-        Location eye = anchor.clone().add(0, player.getEyeHeight(), 0);
-        double dx = target.getX() - eye.getX();
-        double dy = target.getY() - eye.getY();
-        double dz = target.getZ() - eye.getZ();
-        double distanceXZ = Math.sqrt(dx * dx + dz * dz);
-
-        Location forced = anchor.clone();
-        forced.setYaw((float) Math.toDegrees(Math.atan2(-dx, dz)));
-        forced.setPitch((float) Math.toDegrees(-Math.atan2(dy, distanceXZ)));
-        player.teleport(forced);
+        CameraUtil.forceLookAt(player, anchor, target);
 
         plugin.getServer().getScheduler().runTaskLater(plugin,
                 () -> forceLookAt(plugin, player, anchor, crateBlockLocation, ticksLeft - 1), 1L);
@@ -187,7 +179,7 @@ public class CrateRollAnimation {
         String name = itemDisplayName(won);
         player.sendMessage("§aWygrałeś: §f" + name + " §7(x" + won.getAmount() + ") §7ze skrzyni '" + crateName + "'!");
 
-        announceRarity(plugin, player, crateName, name, wonReward.chance());
+        announceRarity(plugin, player, crateName, name, wonReward.chance(), crateBlockLocation);
 
         if (crateBlockLocation != null) {
             plugin.getCrateItemDisplays().highlightWin(crateBlockLocation, won);
@@ -237,11 +229,15 @@ public class CrateRollAnimation {
      * RZADKI (&lt;15%) - mniejszy tytuł tylko dla gracza, bez ogłoszenia.
      * Reszta - bez zmian (już obsłużone wyżej: dźwięk levelup + wiadomość na czacie).
      */
-    private static void announceRarity(CombatLogPlugin plugin, Player player, String crateName, String itemName, double chance) {
+    private static void announceRarity(CombatLogPlugin plugin, Player player, String crateName, String itemName,
+                                        double chance, Location crateBlockLocation) {
         if (chance < LEGENDARY_THRESHOLD) {
             TitleUtil.show(player, "§6§l✦ LEGENDARY ✦", "§f" + itemName);
             player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.4f);
             spawnFirework(plugin, player);
+            if (crateBlockLocation != null) {
+                spawnLegendaryBeacon(plugin, crateBlockLocation);
+            }
 
             String broadcast = "§6§l✦ §e" + player.getName() + " §6wylosował(a) RZADKI przedmiot §f" + itemName
                     + " §6ze skrzyni '" + crateName + "'! §6§l✦";
@@ -250,6 +246,28 @@ public class CrateRollAnimation {
             TitleUtil.show(player, "§b§lRZADKI!", "§f" + itemName);
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.0f);
         }
+    }
+
+    /**
+     * Widoczny z daleka snop cząsteczek strzelający w górę ze skrzyni przez kilka sekund -
+     * żeby inni gracze na serwerze widzieli, gdzie właśnie wypadła legendarna nagroda.
+     */
+    private static void spawnLegendaryBeacon(CombatLogPlugin plugin, Location crateBlockLocation) {
+        Location base = crateBlockLocation.clone().add(0.5, 0, 0.5);
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks++ > 100 || base.getWorld() == null) {
+                    cancel();
+                    return;
+                }
+                for (double y = 0; y < 16; y += 0.5) {
+                    base.getWorld().spawnParticle(Particle.END_ROD, base.getX(), base.getY() + y, base.getZ(), 1, 0, 0, 0, 0);
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 4L);
     }
 
     private static void spawnFirework(CombatLogPlugin plugin, Player player) {

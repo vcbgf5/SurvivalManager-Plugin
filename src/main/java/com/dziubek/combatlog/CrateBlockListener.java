@@ -1,5 +1,8 @@
 package com.dziubek.combatlog;
 
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -76,6 +79,8 @@ public class CrateBlockListener implements Listener {
             return;
         }
 
+        playKeyInsertEffect(event.getClickedBlock());
+
         if (item.getAmount() > 1) {
             item.setAmount(item.getAmount() - 1);
         } else {
@@ -84,6 +89,15 @@ public class CrateBlockListener implements Listener {
 
         plugin.getCrates().getEffect(crateName).play(plugin, event.getClickedBlock().getLocation());
         plugin.getCrateOpenChoiceGui().open(player, crateName, rewards, event.getClickedBlock().getLocation());
+    }
+
+    /**
+     * Krótki "sting" (cząsteczki + dźwięk zamka) w momencie włożenia klucza do skrzyni,
+     * zanim zagra właściwy efekt otwarcia - osobna, drobna informacja zwrotna "klucz pasuje".
+     */
+    private void playKeyInsertEffect(Block block) {
+        block.getWorld().spawnParticle(Particle.CRIT, block.getLocation().add(0.5, 0.5, 0.5), 15, 0.2, 0.2, 0.2, 0.1);
+        block.getWorld().playSound(block.getLocation(), Sound.ITEM_LODESTONE_COMPASS_LOCK, 0.8f, 1.2f);
     }
 
     private static String formatDuration(long totalSeconds) {

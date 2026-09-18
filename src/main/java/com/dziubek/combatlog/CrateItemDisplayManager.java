@@ -235,7 +235,7 @@ public class CrateItemDisplayManager {
             long elapsed = now - entry.dropStartAt;
             if (elapsed < DROP_DURATION_MS) {
                 double t = Math.min(1.0, elapsed / (double) DROP_DURATION_MS);
-                translateY += (float) ((1.0 - easeOutCubic(t)) * DROP_START_OFFSET);
+                translateY += (float) ((1.0 - CameraUtil.easeOutCubic(t)) * DROP_START_OFFSET);
             } else {
                 entry.dropStartAt = 0L;
             }
@@ -255,15 +255,6 @@ public class CrateItemDisplayManager {
             return base;
         }
         return base.add(0, computeTranslateY(entry, System.currentTimeMillis()), 0);
-    }
-
-    /**
-     * Szybki start, płynne zwolnienie pod koniec - "spadający" przedmiot dobija do miejsca
-     * spoczynku bez szarpnięcia.
-     */
-    private static double easeOutCubic(double t) {
-        double f = t - 1.0;
-        return f * f * f + 1.0;
     }
 
     private void cycle() {

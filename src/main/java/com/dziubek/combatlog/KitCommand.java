@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.List;
 import java.util.Map;
 
 public class KitCommand implements CommandExecutor {
@@ -74,7 +75,8 @@ public class KitCommand implements CommandExecutor {
             return true;
         }
 
-        for (ItemStack item : plugin.getKits().getItems(name)) {
+        List<ItemStack> kitItems = plugin.getKits().getItems(name);
+        for (ItemStack item : kitItems) {
             Map<Integer, ItemStack> leftover = player.getInventory().addItem(item.clone());
             for (ItemStack extra : leftover.values()) {
                 player.getWorld().dropItemNaturally(player.getLocation(), extra);
@@ -83,6 +85,9 @@ public class KitCommand implements CommandExecutor {
 
         plugin.getKits().markUsed(name, player.getUniqueId());
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+        if (!kitItems.isEmpty()) {
+            RewardRevealEffect.play(plugin, player, kitItems.get(0));
+        }
         player.sendMessage("§aOtrzymujesz kit '" + name + "'!");
         return true;
     }

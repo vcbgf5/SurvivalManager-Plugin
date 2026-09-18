@@ -93,11 +93,15 @@ public class ShopGuiListener implements Listener {
         plugin.getStats().recordMoneySpent(player.getUniqueId(), player.getName(), item.price);
 
         if (item.type == ShopItemType.KIT) {
-            for (ItemStack kitItem : plugin.getKits().getItems(item.kitName)) {
+            List<ItemStack> kitItems = plugin.getKits().getItems(item.kitName);
+            for (ItemStack kitItem : kitItems) {
                 Map<Integer, ItemStack> leftover = player.getInventory().addItem(kitItem.clone());
                 for (ItemStack extra : leftover.values()) {
                     player.getWorld().dropItemNaturally(player.getLocation(), extra);
                 }
+            }
+            if (!kitItems.isEmpty()) {
+                RewardRevealEffect.playLight(plugin, player, kitItems.get(0));
             }
             player.sendMessage("§aKupiono! Otrzymujesz kit '" + item.kitName + "'.");
         } else {

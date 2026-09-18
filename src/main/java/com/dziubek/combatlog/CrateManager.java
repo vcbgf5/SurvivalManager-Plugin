@@ -320,6 +320,7 @@ public class CrateManager {
         save();
         rebuildLocationCache();
         createHologram(name, id, location);
+        plugin.getCrateItemDisplays().spawnDisplay(name, location);
         return true;
     }
 
@@ -350,6 +351,7 @@ public class CrateManager {
                     save();
                     rebuildLocationCache();
                     removeHologram(name, id);
+                    plugin.getCrateItemDisplays().removeDisplay(location);
                     return name;
                 }
             }
@@ -465,6 +467,18 @@ public class CrateManager {
     public void refreshAllHolograms() {
         for (String name : names()) {
             refreshHolograms(name);
+        }
+    }
+
+    /**
+     * Stawia pływające ItemDisplay nad wszystkimi fizycznymi skrzyniami - wywoływane przy
+     * starcie pluginu (analogicznie do refreshAllHolograms).
+     */
+    public void initializeItemDisplays() {
+        for (String name : names()) {
+            for (Location location : getAllLocations(name)) {
+                plugin.getCrateItemDisplays().spawnDisplay(name, location);
+            }
         }
     }
 

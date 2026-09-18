@@ -3,6 +3,7 @@ package com.dziubek.combatlog;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -28,7 +29,8 @@ public class CrateRollAnimation {
     private static final double LEGENDARY_THRESHOLD = 5.0;
     private static final double RARE_THRESHOLD = 15.0;
 
-    public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards) {
+    public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards,
+                             Location crateBlockLocation) {
         Inventory inv = Bukkit.createInventory(new CrateRollGuiHolder(), 9, "§6§lOtwieranie: §f" + crateName);
 
         ItemStack border = borderPane(Material.BLACK_STAINED_GLASS_PANE);
@@ -45,11 +47,12 @@ public class CrateRollAnimation {
 
         player.openInventory(inv);
         TitleUtil.show(player, "§6§lLosowanie...", "§7" + crateName);
-        step(plugin, player, inv, crateName, rewards, reel, random, 0);
+        step(plugin, player, inv, crateName, rewards, reel, random, 0, crateBlockLocation);
     }
 
     private static void step(CombatLogPlugin plugin, Player player, Inventory inv, String crateName,
-                              List<CrateReward> rewards, List<ItemStack> reel, Random random, int tick) {
+                              List<CrateReward> rewards, List<ItemStack> reel, Random random, int tick,
+                              Location crateBlockLocation) {
 
         if (!player.isOnline()) {
             return; // gracz sie rozlaczyl - nie da sie kontynuowac
@@ -76,7 +79,7 @@ public class CrateRollAnimation {
             long delay = 2 + (long) ((tick * (double) tick) / 40.0);
             int next = tick + 1;
             plugin.getServer().getScheduler().runTaskLater(plugin,
-                    () -> step(plugin, player, inv, crateName, rewards, reel, random, next), delay);
+                    () -> step(plugin, player, inv, crateName, rewards, reel, random, next, crateBlockLocation), delay);
         } else {
             CrateReward wonReward = pickWeighted(rewards, random);
             ItemStack won = wonReward.item().clone();
@@ -100,6 +103,10 @@ public class CrateRollAnimation {
             player.sendMessage("§aWygrałeś: §f" + name + " §7(x" + won.getAmount() + ") §7ze skrzyni '" + crateName + "'!");
 
             announceRarity(plugin, player, crateName, name, wonReward.chance());
+
+            if (crateBlockLocation != null) {
+                plugin.getCrateItemDisplays().highlightWin(crateBlockLocation, won);
+            }
         }
     }
 

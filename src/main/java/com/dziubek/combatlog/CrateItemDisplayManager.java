@@ -30,14 +30,18 @@ public class CrateItemDisplayManager {
     private static final double DEFAULT_HEIGHT_ABOVE_BLOCK = 3.5;
     private static final long IDLE_PERIOD_MS = 2200;
     private static final long HIGHLIGHT_PERIOD_MS = 450;
-    private static final long HIGHLIGHT_DURATION_MS = 3000;
     private static final long CYCLE_INTERVAL_TICKS = 20L;
     private static final long SPIN_INTERVAL_TICKS = 2L;
     private static final long RECONCILE_INTERVAL_TICKS = 100L;
+    private static final float IDLE_SCALE = 0.6f;
+    private static final float HIGHLIGHT_SCALE = 1.5f;
 
     // "spadanie" wygranej z gory na miejsce spoczynku, zwalniajac pod koniec (ease-out)
     private static final double DROP_START_OFFSET = 4.0;
     private static final long DROP_DURATION_MS = 1100;
+    // ile wygrana zostaje duza w miejscu spoczynku PO wyladowaniu, zanim wroci do normalnego cyklu
+    private static final long BIG_HOLD_MS = 2000;
+    private static final long HIGHLIGHT_DURATION_MS = DROP_DURATION_MS + BIG_HOLD_MS;
 
     private final CombatLogPlugin plugin;
     private final NamespacedKey ownerTag;
@@ -204,19 +208,8 @@ public class CrateItemDisplayManager {
             boolean highlighted = now < entry.highlightUntil;
             long period = highlighted ? HIGHLIGHT_PERIOD_MS : IDLE_PERIOD_MS;
             float angle = (float) ((now % period) / (double) period * Math.PI * 2);
-            float bob = (float) (Math.sin(now / 500.0) * 0.05);
-            float scale = highlighted ? 0.85f : 0.6f;
-
-            float translateY = bob;
-            if (entry.dropStartAt > 0) {
-                long elapsed = now - entry.dropStartAt;
-                if (elapsed < DROP_DURATION_MS) {
-                    double t = Math.min(1.0, elapsed / (double) DROP_DURATION_MS);
-                    translateY += (float) ((1.0 - easeOutCubic(t)) * DROP_START_OFFSET);
-                } else {
-                    entry.dropStartAt = 0L;
-                }
-            }
+            float scale = highlighted ? HIGHLIGHT_SCALE : IDLE_SCALE;
+            float translateY = computeTranslateY(entry, now);
 
             Transformation transform = new Transformation(
                     new Vector3f(0f, translateY, 0f),
@@ -228,6 +221,40 @@ public class CrateItemDisplayManager {
             display.setInterpolationDuration((int) SPIN_INTERVAL_TICKS);
             display.setTransformation(transform);
         }
+    }
+
+    /**
+     * Pionowe przesunięcie renderowania względem pozycji spoczynku: lekkie bujanie cały czas,
+     * plus - zaraz po wygranej - opadanie z góry (ease-out). Współdzielone przez spin() i
+     * getVisualLocation(), żeby kamera cutscenki (CrateRollAnimation) patrzyła dokładnie tam,
+     * gdzie przedmiot faktycznie jest renderowany w danej chwili, a nie w stałym punkcie.
+     */
+    private float computeTranslateY(Entry entry, long now) {
+        float translateY = (float) (Math.sin(now / 500.0) * 0.05);
+        if (entry.dropStartAt > 0) {
+            long elapsed = now - entry.dropStartAt;
+            if (elapsed < DROP_DURATION_MS) {
+                double t = Math.min(1.0, elapsed / (double) DROP_DURATION_MS);
+                translateY += (float) ((1.0 - easeOutCubic(t)) * DROP_START_OFFSET);
+            } else {
+                entry.dropStartAt = 0L;
+            }
+        }
+        return translateY;
+    }
+
+    /**
+     * Zwraca dokładną, aktualną pozycję renderowania przedmiotu nad daną skrzynią (z
+     * uwzględnieniem bujania/opadania w danej chwili) - używane, żeby kamera w cutscence po
+     * wygranej realnie podążała za przedmiotem, a nie patrzyła w jeden stały punkt.
+     */
+    public Location getVisualLocation(Location blockLocation) {
+        Location base = blockLocation.clone().add(0.5, heightAboveBlock, 0.5);
+        Entry entry = entries.get(blockKey(blockLocation));
+        if (entry == null || !entry.display.isValid()) {
+            return base;
+        }
+        return base.add(0, computeTranslateY(entry, System.currentTimeMillis()), 0);
     }
 
     /**

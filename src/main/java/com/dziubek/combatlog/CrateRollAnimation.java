@@ -38,8 +38,10 @@ public class CrateRollAnimation {
 
     // ile trzyma sie widok wygranej w GUI zanim samo sie zamknie (wariant z animacja)
     private static final int REVEAL_HOLD_TICKS = 20;
-    // jak dlugo kamera jest "przytrzymana" na plywajacym przedmiocie nad skrzynia
-    private static final int CUTSCENE_TICKS = 30;
+    // jak dlugo kamera jest "przytrzymana" na plywajacym przedmiocie nad skrzynia - dopasowane
+    // do tego, jak dlugo CrateItemDisplayManager trzyma przedmiot "duzy" po wygranej (spadanie
+    // ~1.1s + 2s duzy w miejscu spoczynku), zeby wybuch totemu wypadl dokladnie na koniec
+    private static final int CUTSCENE_TICKS = 62;
 
     public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards,
                              Location crateBlockLocation) {
@@ -129,18 +131,24 @@ public class CrateRollAnimation {
             return;
         }
         Location anchor = player.getLocation();
-        Location target = crateBlockLocation.clone().add(0.5, plugin.getCrateItemDisplays().getHeight(), 0.5);
-
-        forceLookAt(plugin, player, anchor, target, CUTSCENE_TICKS);
+        forceLookAt(plugin, player, anchor, crateBlockLocation, CUTSCENE_TICKS);
     }
 
-    private static void forceLookAt(CombatLogPlugin plugin, Player player, Location anchor, Location target, int ticksLeft) {
+    /**
+     * Co tick na nowo pyta CrateItemDisplayManager, gdzie DOKŁADNIE przedmiot jest teraz
+     * renderowany (uwzględnia opadanie/bujanie) - więc kamera realnie za nim podąża,
+     * zamiast patrzeć w jeden stały punkt.
+     */
+    private static void forceLookAt(CombatLogPlugin plugin, Player player, Location anchor,
+                                     Location crateBlockLocation, int ticksLeft) {
         if (!player.isOnline()) {
             return;
         }
+        Location target = plugin.getCrateItemDisplays().getVisualLocation(crateBlockLocation);
+
         if (ticksLeft <= 0) {
-            player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, anchor.clone().add(0, 1, 0), 60, 0.5, 1.0, 0.5, 0.5);
-            player.playSound(anchor, Sound.ITEM_TOTEM_USE, 1.0f, 1.0f);
+            player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, target, 150, 0.8, 0.8, 0.8, 0.6);
+            player.getWorld().playSound(target, Sound.ITEM_TOTEM_USE, 1.5f, 1.0f);
             return;
         }
 
@@ -156,7 +164,7 @@ public class CrateRollAnimation {
         player.teleport(forced);
 
         plugin.getServer().getScheduler().runTaskLater(plugin,
-                () -> forceLookAt(plugin, player, anchor, target, ticksLeft - 1), 1L);
+                () -> forceLookAt(plugin, player, anchor, crateBlockLocation, ticksLeft - 1), 1L);
     }
 
     /**

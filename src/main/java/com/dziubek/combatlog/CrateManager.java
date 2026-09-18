@@ -476,6 +476,7 @@ public class CrateManager {
      * nie przerywa reszty - trafia do logów, żeby dało się go namierzyć.
      */
     public void initializeItemDisplays() {
+        plugin.getCrateItemDisplays().purgeOrphans();
         int spawned = 0;
         int total = 0;
         for (String name : names()) {

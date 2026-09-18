@@ -61,6 +61,29 @@ public class CrateItemDisplayManager {
     }
 
     /**
+     * Usuwa WSZYSTKIE oznaczone naszym tagiem encje we wszystkich załadowanych światach,
+     * niezależnie od pozycji - wywoływane raz przy starcie pluginu, zanim postawimy świeży
+     * zestaw displayów. Łapie "osierocone" encje sprzed zmiany wysokości/kolejnych /reload,
+     * których nie znalazłoby przeszukiwanie samej okolicy jednego bloku - to właśnie one
+     * zostają wtedy w świecie na stałe: bez skalowania i animacji (nikt już ich nie ożywia),
+     * więc wyglądają jak duży, nieruchomy przedmiot obok normalnie kręcącego się displaya.
+     */
+    public void purgeOrphans() {
+        int removed = 0;
+        for (World world : plugin.getServer().getWorlds()) {
+            for (Entity entity : world.getEntitiesByClass(ItemDisplay.class)) {
+                if (entity.getScoreboardTags().contains(TAG)) {
+                    entity.remove();
+                    removed++;
+                }
+            }
+        }
+        if (removed > 0) {
+            plugin.getLogger().info("Usunięto " + removed + " osieroconych pływających przedmiotów nad skrzyniami sprzed restartu.");
+        }
+    }
+
+    /**
      * Zmienia wysokość na żywo, bez restartu - zapisuje w config.yml i od razu przestawia
      * wszystkie już postawione displaye na nową wysokość (teleportacja, bez ich niszczenia).
      */

@@ -29,6 +29,8 @@ public class CombatLogPlugin extends JavaPlugin {
     private CrateRewardSessionManager crateRewardSessions;
     private StatsManager stats;
     private CratePreviewGuiManager cratePreviewGui;
+    private CrateItemDisplayManager crateItemDisplays;
+    private CrateOpenChoiceGuiManager crateOpenChoiceGui;
 
     @Override
     public void onEnable() {
@@ -51,7 +53,11 @@ public class CombatLogPlugin extends JavaPlugin {
         crateRewardSessions = new CrateRewardSessionManager();
         stats = new StatsManager(this);
         cratePreviewGui = new CratePreviewGuiManager(this);
+        crateItemDisplays = new CrateItemDisplayManager(this);
+        crateOpenChoiceGui = new CrateOpenChoiceGuiManager(this);
         crates.refreshAllHolograms();
+        crates.initializeItemDisplays();
+        crateItemDisplays.start();
 
         setupEconomy();
 
@@ -106,6 +112,13 @@ public class CombatLogPlugin extends JavaPlugin {
         }
 
         getLogger().info("CombatLog włączony! Czas walki: " + getCombatDurationSeconds() + "s, spawn survivala ustawiony: " + hasSurvivalSpawn());
+    }
+
+    @Override
+    public void onDisable() {
+        if (crateItemDisplays != null) {
+            crateItemDisplays.shutdown();
+        }
     }
 
     private boolean setupEconomy() {
@@ -244,5 +257,13 @@ public class CombatLogPlugin extends JavaPlugin {
 
     public CratePreviewGuiManager getCratePreviewGui() {
         return cratePreviewGui;
+    }
+
+    public CrateItemDisplayManager getCrateItemDisplays() {
+        return crateItemDisplays;
+    }
+
+    public CrateOpenChoiceGuiManager getCrateOpenChoiceGui() {
+        return crateOpenChoiceGui;
     }
 }

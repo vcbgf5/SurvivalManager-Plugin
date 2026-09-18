@@ -90,6 +90,7 @@ public class DailyCommand implements CommandExecutor {
         plugin.getDaily().markClaimed(player.getUniqueId(), cycleDay);
         plugin.getStats().recordDailyClaim(player.getUniqueId(), player.getName());
         plugin.getDaily().getEffect().play(plugin, player.getLocation());
+        RewardRevealEffect.play(plugin, player, reward);
         player.sendMessage("§aOdebrano nagrodę za dzień §f" + cycleDay + "§a/7 z rzędu!");
 
         if (cycleDay == 7) {

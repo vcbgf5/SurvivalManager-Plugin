@@ -27,12 +27,16 @@ import java.util.Map;
 public class CrateItemDisplayManager {
 
     private static final String TAG = "sm_crate_item_display";
-    private static final double HEIGHT_ABOVE_BLOCK = 1.35;
+    private static final double HEIGHT_ABOVE_BLOCK = 2.0;
     private static final long IDLE_PERIOD_MS = 2200;
     private static final long HIGHLIGHT_PERIOD_MS = 450;
     private static final long HIGHLIGHT_DURATION_MS = 3000;
     private static final long CYCLE_INTERVAL_TICKS = 20L;
     private static final long SPIN_INTERVAL_TICKS = 2L;
+
+    // "spadanie" wygranej z gory na miejsce spoczynku, zwalniajac pod koniec (ease-out)
+    private static final double DROP_START_OFFSET = 4.0;
+    private static final long DROP_DURATION_MS = 1100;
 
     private final CombatLogPlugin plugin;
     private final NamespacedKey ownerTag;
@@ -118,7 +122,9 @@ public class CrateItemDisplayManager {
         if (entry == null) {
             return;
         }
-        entry.highlightUntil = System.currentTimeMillis() + HIGHLIGHT_DURATION_MS;
+        long now = System.currentTimeMillis();
+        entry.highlightUntil = now + HIGHLIGHT_DURATION_MS;
+        entry.dropStartAt = now;
         if (entry.display.isValid()) {
             entry.display.setItemStack(won.clone());
         }
@@ -137,8 +143,19 @@ public class CrateItemDisplayManager {
             float bob = (float) (Math.sin(now / 500.0) * 0.05);
             float scale = highlighted ? 0.85f : 0.6f;
 
+            float translateY = bob;
+            if (entry.dropStartAt > 0) {
+                long elapsed = now - entry.dropStartAt;
+                if (elapsed < DROP_DURATION_MS) {
+                    double t = Math.min(1.0, elapsed / (double) DROP_DURATION_MS);
+                    translateY += (float) ((1.0 - easeOutCubic(t)) * DROP_START_OFFSET);
+                } else {
+                    entry.dropStartAt = 0L;
+                }
+            }
+
             Transformation transform = new Transformation(
-                    new Vector3f(0f, bob, 0f),
+                    new Vector3f(0f, translateY, 0f),
                     new Quaternionf(new AxisAngle4f(angle, 0f, 1f, 0f)),
                     new Vector3f(scale, scale, scale),
                     new Quaternionf()
@@ -147,6 +164,15 @@ public class CrateItemDisplayManager {
             display.setInterpolationDuration((int) SPIN_INTERVAL_TICKS);
             display.setTransformation(transform);
         }
+    }
+
+    /**
+     * Szybki start, płynne zwolnienie pod koniec - "spadający" przedmiot dobija do miejsca
+     * spoczynku bez szarpnięcia.
+     */
+    private static double easeOutCubic(double t) {
+        double f = t - 1.0;
+        return f * f * f + 1.0;
     }
 
     private void cycle() {
@@ -188,6 +214,7 @@ public class CrateItemDisplayManager {
         final String crateName;
         int rewardIndex = 0;
         long highlightUntil = 0L;
+        long dropStartAt = 0L;
 
         Entry(ItemDisplay display, String crateName) {
             this.display = display;

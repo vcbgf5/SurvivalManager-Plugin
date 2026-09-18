@@ -12,7 +12,8 @@ public class CrateTabCompleter implements TabCompleter {
 
     private static final List<String> SUBCOMMANDS = List.of(
             "create", "givekey", "bind", "unbind", "sethologram",
-            "seteffect", "setidleeffect", "setprivate", "setfreecooldown", "setdisplayheight", "preview", "list"
+            "seteffect", "setidleeffect", "setprivate", "setfreecooldown", "setdisplayheight",
+            "purgedisplays", "preview", "list"
     );
     private static final List<String> BOOLEANS = List.of("true", "false");
     private static final List<String> NEEDS_CRATE_NAME = List.of(

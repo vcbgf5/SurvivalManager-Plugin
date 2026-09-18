@@ -25,6 +25,11 @@ public class CrateGuiListener implements Listener {
             return;
         }
 
+        if (event.getInventory().getHolder() instanceof CrateOpenChoiceGuiHolder) {
+            handleOpenChoiceClick(event);
+            return;
+        }
+
         if (event.getInventory().getHolder() instanceof CrateConfigGuiHolder) {
             handleConfigClick(event);
             return;
@@ -33,6 +38,28 @@ public class CrateGuiListener implements Listener {
         if (event.getInventory().getHolder() instanceof CratePreviewGuiHolder) {
             // czysto informacyjne GUI - nic nie da się stąd zabrać
             event.setCancelled(true);
+        }
+    }
+
+    private void handleOpenChoiceClick(InventoryClickEvent event) {
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+
+        int slot = event.getRawSlot();
+        if (slot != CrateOpenChoiceGuiManager.ANIMATED_SLOT && slot != CrateOpenChoiceGuiManager.INSTANT_SLOT) {
+            return;
+        }
+
+        Player player = (Player) event.getWhoClicked();
+        CrateOpenChoiceGuiHolder holder = (CrateOpenChoiceGuiHolder) event.getInventory().getHolder();
+
+        if (slot == CrateOpenChoiceGuiManager.ANIMATED_SLOT) {
+            CrateRollAnimation.play(plugin, player, holder.getCrateName(), holder.getRewards(), holder.getCrateBlockLocation());
+        } else {
+            player.closeInventory();
+            CrateRollAnimation.playInstant(plugin, player, holder.getCrateName(), holder.getRewards(), holder.getCrateBlockLocation());
         }
     }
 

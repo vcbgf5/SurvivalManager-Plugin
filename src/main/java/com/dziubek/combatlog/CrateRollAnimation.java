@@ -21,9 +21,16 @@ import java.util.Random;
 
 public class CrateRollAnimation {
 
+    private static final int GUI_SIZE = 27;
     private static final int TOTAL_STEPS = 24;
-    private static final int[] REEL_SLOTS = {2, 3, 4, 5, 6};
-    private static final int RESULT_SLOT = 4;
+
+    // srodkowy rzad (9-17) - bebenek kreci sie w slotach 11-15, wynik laduje na 13
+    private static final int[] REEL_SLOTS = {11, 12, 13, 14, 15};
+    private static final int RESULT_SLOT = 13;
+
+    // strzalki nad i pod slotem wyniku, wskazujace gdzie wyladuje wygrana
+    private static final int ARROW_TOP_SLOT = 4;
+    private static final int ARROW_BOTTOM_SLOT = 22;
 
     // progi rzadkosci wg CrateReward.chance() (%) - im nizszy procent, tym rzadszy przedmiot
     private static final double LEGENDARY_THRESHOLD = 5.0;
@@ -31,12 +38,8 @@ public class CrateRollAnimation {
 
     public static void play(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards,
                              Location crateBlockLocation) {
-        Inventory inv = Bukkit.createInventory(new CrateRollGuiHolder(), 9, "§6§lOtwieranie: §f" + crateName);
-
-        ItemStack border = borderPane(Material.BLACK_STAINED_GLASS_PANE);
-        for (int i = 0; i < 9; i++) {
-            inv.setItem(i, border);
-        }
+        Inventory inv = Bukkit.createInventory(new CrateRollGuiHolder(), GUI_SIZE, "§6§lOtwieranie: §f" + crateName);
+        paintFrame(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         Random random = new Random();
         List<ItemStack> reel = new ArrayList<>();
@@ -48,6 +51,18 @@ public class CrateRollAnimation {
         player.openInventory(inv);
         TitleUtil.show(player, "§6§lLosowanie...", "§7" + crateName);
         step(plugin, player, inv, crateName, rewards, reel, random, 0, crateBlockLocation);
+    }
+
+    /**
+     * Wariant bez bębenka - od razu losuje i wydaje nagrodę (wybór "Otwórz bez animacji").
+     */
+    public static void playInstant(CombatLogPlugin plugin, Player player, String crateName, List<CrateReward> rewards,
+                                    Location crateBlockLocation) {
+        if (!player.isOnline()) {
+            return;
+        }
+        CrateReward wonReward = pickWeighted(rewards, new Random());
+        applyReward(plugin, player, crateName, wonReward, crateBlockLocation);
     }
 
     private static void step(CombatLogPlugin plugin, Player player, Inventory inv, String crateName,
@@ -84,29 +99,37 @@ public class CrateRollAnimation {
             CrateReward wonReward = pickWeighted(rewards, random);
             ItemStack won = wonReward.item().clone();
 
-            ItemStack frame = borderPane(frameColorFor(wonReward.chance()));
-            for (int i = 0; i < 9; i++) {
-                inv.setItem(i, frame);
-            }
+            paintFrame(inv, frameColorFor(wonReward.chance()));
             inv.setItem(RESULT_SLOT, won);
 
-            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+            applyReward(plugin, player, crateName, wonReward, crateBlockLocation);
+        }
+    }
 
-            Map<Integer, ItemStack> leftover = player.getInventory().addItem(won.clone());
-            for (ItemStack extra : leftover.values()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), extra);
-            }
+    /**
+     * Wydaje nagrodę, zapisuje statystyki, wysyła wiadomości/ogłoszenia i podmienia przedmiot
+     * nad fizyczną skrzynią na wygrany. Wspólne dla wariantu z animacją i bez.
+     */
+    private static void applyReward(CombatLogPlugin plugin, Player player, String crateName, CrateReward wonReward,
+                                     Location crateBlockLocation) {
+        ItemStack won = wonReward.item().clone();
 
-            plugin.getStats().recordCrateOpened(player.getUniqueId(), player.getName());
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 
-            String name = itemDisplayName(won);
-            player.sendMessage("§aWygrałeś: §f" + name + " §7(x" + won.getAmount() + ") §7ze skrzyni '" + crateName + "'!");
+        Map<Integer, ItemStack> leftover = player.getInventory().addItem(won.clone());
+        for (ItemStack extra : leftover.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), extra);
+        }
 
-            announceRarity(plugin, player, crateName, name, wonReward.chance());
+        plugin.getStats().recordCrateOpened(player.getUniqueId(), player.getName());
 
-            if (crateBlockLocation != null) {
-                plugin.getCrateItemDisplays().highlightWin(crateBlockLocation, won);
-            }
+        String name = itemDisplayName(won);
+        player.sendMessage("§aWygrałeś: §f" + name + " §7(x" + won.getAmount() + ") §7ze skrzyni '" + crateName + "'!");
+
+        announceRarity(plugin, player, crateName, name, wonReward.chance());
+
+        if (crateBlockLocation != null) {
+            plugin.getCrateItemDisplays().highlightWin(crateBlockLocation, won);
         }
     }
 
@@ -114,6 +137,27 @@ public class CrateRollAnimation {
         for (int i = 0; i < REEL_SLOTS.length; i++) {
             inv.setItem(REEL_SLOTS[i], reel.get(i).clone());
         }
+    }
+
+    /**
+     * Wypełnia całe GUI ramką z podanego materiału, a potem wstawia strzałki wskazujące
+     * slot wyniku (nad i pod środkowym rzędem bębenka).
+     */
+    private static void paintFrame(Inventory inv, Material frameMaterial) {
+        ItemStack frame = borderPane(frameMaterial);
+        for (int i = 0; i < GUI_SIZE; i++) {
+            inv.setItem(i, frame);
+        }
+        inv.setItem(ARROW_TOP_SLOT, arrowPane(true));
+        inv.setItem(ARROW_BOTTOM_SLOT, arrowPane(false));
+    }
+
+    private static ItemStack arrowPane(boolean pointingDown) {
+        ItemStack pane = new ItemStack(Material.YELLOW_STAINED_GLASS_PANE);
+        ItemMeta meta = pane.getItemMeta();
+        meta.setDisplayName(pointingDown ? "§e§l▼ TU WYPADNIE ▼" : "§e§l▲ TU WYPADNIE ▲");
+        pane.setItemMeta(meta);
+        return pane;
     }
 
     private static Material frameColorFor(double chance) {

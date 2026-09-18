@@ -30,6 +30,7 @@ public class CombatLogPlugin extends JavaPlugin {
     private StatsManager stats;
     private CratePreviewGuiManager cratePreviewGui;
     private CrateItemDisplayManager crateItemDisplays;
+    private CrateOpenChoiceGuiManager crateOpenChoiceGui;
 
     @Override
     public void onEnable() {
@@ -53,6 +54,7 @@ public class CombatLogPlugin extends JavaPlugin {
         stats = new StatsManager(this);
         cratePreviewGui = new CratePreviewGuiManager(this);
         crateItemDisplays = new CrateItemDisplayManager(this);
+        crateOpenChoiceGui = new CrateOpenChoiceGuiManager(this);
         crates.refreshAllHolograms();
         crates.initializeItemDisplays();
         crateItemDisplays.start();
@@ -259,5 +261,9 @@ public class CombatLogPlugin extends JavaPlugin {
 
     public CrateItemDisplayManager getCrateItemDisplays() {
         return crateItemDisplays;
+    }
+
+    public CrateOpenChoiceGuiManager getCrateOpenChoiceGui() {
+        return crateOpenChoiceGui;
     }
 }

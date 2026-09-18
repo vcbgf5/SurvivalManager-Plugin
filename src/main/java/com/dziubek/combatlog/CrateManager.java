@@ -472,14 +472,25 @@ public class CrateManager {
 
     /**
      * Stawia pływające ItemDisplay nad wszystkimi fizycznymi skrzyniami - wywoływane przy
-     * starcie pluginu (analogicznie do refreshAllHolograms).
+     * starcie pluginu (analogicznie do refreshAllHolograms). Błąd przy jednej lokalizacji
+     * nie przerywa reszty - trafia do logów, żeby dało się go namierzyć.
      */
     public void initializeItemDisplays() {
+        int spawned = 0;
+        int total = 0;
         for (String name : names()) {
             for (Location location : getAllLocations(name)) {
-                plugin.getCrateItemDisplays().spawnDisplay(name, location);
+                total++;
+                try {
+                    plugin.getCrateItemDisplays().spawnDisplay(name, location);
+                    spawned++;
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Nie udało się postawić pływającego przedmiotu nad skrzynią '"
+                            + name + "' (" + location + "): " + e);
+                }
             }
         }
+        plugin.getLogger().info("Pływające przedmioty nad skrzyniami: " + spawned + "/" + total + " postawionych.");
     }
 
     private void refreshHolograms(String name) {

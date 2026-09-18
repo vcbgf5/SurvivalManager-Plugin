@@ -1,6 +1,7 @@
 package com.dziubek.combatlog;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Display;
@@ -74,6 +75,10 @@ public class CrateItemDisplayManager {
 
         Location spawnAt = blockLocation.clone().add(0.5, HEIGHT_ABOVE_BLOCK, 0.5);
         List<CrateReward> rewards = plugin.getCrates().getRewards(crateName);
+        if (rewards.isEmpty()) {
+            plugin.getLogger().warning("Skrzynia '" + crateName + "' nie ma jeszcze skonfigurowanych nagród - "
+                    + "pływający przedmiot nad nią pokaże tylko zastępczą ikonę skrzyni.");
+        }
 
         ItemDisplay display = world.spawn(spawnAt, ItemDisplay.class, e -> {
             e.setBillboard(Display.Billboard.FIXED);
@@ -82,12 +87,17 @@ public class CrateItemDisplayManager {
             e.setInvulnerable(true);
             e.getPersistentDataContainer().set(ownerTag, PersistentDataType.STRING, crateName);
             e.addScoreboardTag(TAG);
-            if (!rewards.isEmpty()) {
-                e.setItemStack(rewards.get(0).item().clone());
-            }
+            e.setItemStack(rewards.isEmpty() ? placeholderItem() : rewards.get(0).item().clone());
         });
 
         entries.put(blockKey(blockLocation), new Entry(display, crateName));
+        plugin.getLogger().info("Postawiono pływający przedmiot nad skrzynią '" + crateName + "' w "
+                + world.getName() + " (" + blockLocation.getBlockX() + "," + blockLocation.getBlockY()
+                + "," + blockLocation.getBlockZ() + ").");
+    }
+
+    private static ItemStack placeholderItem() {
+        return new ItemStack(Material.CHEST);
     }
 
     public void removeDisplay(Location blockLocation) {
